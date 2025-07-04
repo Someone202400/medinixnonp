@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import MedicationLibraryPage from "./pages/MedicationLibraryPage";
 import AddMedicationPage from "./pages/AddMedicationPage";
+import ContactDoctorPage from "./pages/ContactDoctorPage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -49,6 +50,11 @@ const App = () => (
               <Route path="/add-medication" element={
                 <ProtectedRoute>
                   <AddMedicationPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/contact-doctor" element={
+                <ProtectedRoute>
+                  <ContactDoctorPage />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={

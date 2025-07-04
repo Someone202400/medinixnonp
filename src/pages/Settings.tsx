@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,10 +18,12 @@ import {
   Volume2,
   Smartphone,
   Mail,
-  MessageSquare
+  MessageSquare,
+  ArrowLeft
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { Link } from 'react-router-dom';
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -56,7 +57,7 @@ const Settings = () => {
     autoSync: true,
     dataRetention: '1year'
   });
-
+  
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     toast({
@@ -85,34 +86,40 @@ const Settings = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <Link to="/dashboard">
+            <Button variant="outline" className="mb-4 hover:bg-indigo-50 transition-colors">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+          </Link>
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
             Settings
           </h1>
           <p className="text-gray-600 mt-2">Manage your account and app preferences</p>
         </div>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-5 bg-white/70 backdrop-blur-sm">
+            <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-indigo-100">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2 data-[state=active]:bg-indigo-100">
               <Bell className="h-4 w-4" />
               Notifications
             </TabsTrigger>
-            <TabsTrigger value="preferences" className="flex items-center gap-2">
+            <TabsTrigger value="preferences" className="flex items-center gap-2 data-[state=active]:bg-indigo-100">
               <SettingsIcon className="h-4 w-4" />
               Preferences
             </TabsTrigger>
-            <TabsTrigger value="privacy" className="flex items-center gap-2">
+            <TabsTrigger value="privacy" className="flex items-center gap-2 data-[state=active]:bg-indigo-100">
               <Shield className="h-4 w-4" />
               Privacy
             </TabsTrigger>
-            <TabsTrigger value="advanced" className="flex items-center gap-2">
+            <TabsTrigger value="advanced" className="flex items-center gap-2 data-[state=active]:bg-indigo-100">
               <Globe className="h-4 w-4" />
               Advanced
             </TabsTrigger>
@@ -120,9 +127,9 @@ const Settings = () => {
 
           {/* Profile Settings */}
           <TabsContent value="profile">
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-indigo-700">
                   <User className="h-5 w-5" />
                   Profile Information
                 </CardTitle>
@@ -136,6 +143,7 @@ const Settings = () => {
                       value={settings.fullName}
                       onChange={(e) => setSettings({ ...settings, fullName: e.target.value })}
                       placeholder="Enter your full name"
+                      className="focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -146,6 +154,7 @@ const Settings = () => {
                       value={settings.email}
                       onChange={(e) => setSettings({ ...settings, email: e.target.value })}
                       placeholder="Enter your email"
+                      className="focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                   <div>
@@ -155,6 +164,7 @@ const Settings = () => {
                       value={settings.phone}
                       onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
                       placeholder="Enter your phone number"
+                      className="focus:ring-indigo-500 focus:border-indigo-500"
                     />
                   </div>
                 </div>
@@ -162,7 +172,9 @@ const Settings = () => {
                 <Separator />
                 
                 <div className="flex justify-between">
-                  <Button onClick={handleSaveProfile}>Save Changes</Button>
+                  <Button onClick={handleSaveProfile} className="bg-indigo-600 hover:bg-indigo-700">
+                    Save Changes
+                  </Button>
                   <Button variant="destructive" onClick={handleSignOut}>
                     Sign Out
                   </Button>
@@ -174,9 +186,9 @@ const Settings = () => {
           {/* Notification Settings */}
           <TabsContent value="notifications">
             <div className="space-y-6">
-              <Card>
+              <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-indigo-700">
                     <Bell className="h-5 w-5" />
                     Notification Channels
                   </CardTitle>
@@ -227,9 +239,9 @@ const Settings = () => {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
                 <CardHeader>
-                  <CardTitle>Notification Types</CardTitle>
+                  <CardTitle className="text-indigo-700">Notification Types</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -274,9 +286,9 @@ const Settings = () => {
 
           {/* App Preferences */}
           <TabsContent value="preferences">
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-indigo-700">
                   <Globe className="h-5 w-5" />
                   App Preferences
                 </CardTitle>
@@ -289,7 +301,7 @@ const Settings = () => {
                       value={settings.language}
                       onValueChange={(value) => handleSettingChange('language', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-indigo-500 focus:border-indigo-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -311,7 +323,7 @@ const Settings = () => {
                       value={settings.timezone}
                       onValueChange={(value) => handleSettingChange('timezone', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-indigo-500 focus:border-indigo-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -331,7 +343,7 @@ const Settings = () => {
                       value={settings.theme}
                       onValueChange={(value) => handleSettingChange('theme', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-indigo-500 focus:border-indigo-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -348,7 +360,7 @@ const Settings = () => {
                       value={settings.units}
                       onValueChange={(value) => handleSettingChange('units', value)}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="focus:ring-indigo-500 focus:border-indigo-500">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -364,9 +376,9 @@ const Settings = () => {
 
           {/* Privacy Settings */}
           <TabsContent value="privacy">
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-indigo-700">
                   <Shield className="h-5 w-5" />
                   Privacy & Security
                 </CardTitle>
@@ -410,9 +422,9 @@ const Settings = () => {
 
           {/* Advanced Settings */}
           <TabsContent value="advanced">
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-xl">
               <CardHeader>
-                <CardTitle>Advanced Settings</CardTitle>
+                <CardTitle className="text-indigo-700">Advanced Settings</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -432,7 +444,7 @@ const Settings = () => {
                     value={settings.dataRetention}
                     onValueChange={(value) => handleSettingChange('dataRetention', value)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="focus:ring-indigo-500 focus:border-indigo-500">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
