@@ -20,16 +20,18 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import UpcomingMedications from '@/components/UpcomingMedications';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [medications, setMedications] = useState<any[]>([]);
-  const [upcomingMeds, setUpcomingMeds] = useState<any[]>([]);
+  const [todaysMeds, setTodaysMeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       fetchMedications();
+      fetchTodaysMedications();
     }
   }, [user]);
 
@@ -44,21 +46,38 @@ const Dashboard = () => {
       if (error) throw error;
       
       setMedications(data || []);
-      
-      // Mock upcoming medications for demo - replace with real logic
-      const upcoming = (data || []).slice(0, 3).map(med => ({
-        ...med,
-        nextDose: new Date(Date.now() + Math.random() * 8 * 60 * 60 * 1000).toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })
-      }));
-      
-      setUpcomingMeds(upcoming);
     } catch (error) {
       console.error('Error fetching medications:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTodaysMedications = async () => {
+    try {
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Get today's medication logs
+      const { data: logs, error } = await supabase
+        .from('medication_logs')
+        .select(`
+          *,
+          medications (name, dosage)
+        `)
+        .eq('user_id', user?.id)
+        .gte('scheduled_time', startOfDay.toISOString())
+        .lte('scheduled_time', endOfDay.toISOString())
+        .order('scheduled_time', { ascending: true });
+
+      if (error) throw error;
+
+      setTodaysMeds(logs || []);
+    } catch (error) {
+      console.error('Error fetching today\'s medications:', error);
     }
   };
 
@@ -143,7 +162,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-emerald-100">Doses Today</p>
-                  <p className="text-3xl font-bold">{upcomingMeds.length || 0}</p>
+                  <p className="text-3xl font-bold">{todaysMeds.length || 0}</p>
                 </div>
                 <Clock className="h-10 w-10 text-emerald-200" />
               </div>
@@ -179,7 +198,7 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        {/* Quick Actions - Moved above Today's Medications */}
+        {/* Quick Actions */}
         <Card className="mb-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-xl border-2 border-white/30 shadow-2xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -217,23 +236,37 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {upcomingMeds.length > 0 ? (
+              {todaysMeds.length > 0 ? (
                 <div className="space-y-4">
-                  {upcomingMeds.map((med, index) => (
+                  {todaysMeds.map((log, index) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 shadow-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center">
                           <Pill className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-semibold text-gray-800">{med.name}</h3>
-                          <p className="text-sm text-gray-600">{med.dosage}</p>
+                          <h3 className="font-semibold text-gray-800">{log.medications?.name}</h3>
+                          <p className="text-sm text-gray-600">{log.medications?.dosage}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-blue-600">{med.nextDose}</p>
-                        <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
-                          Upcoming
+                        <p className="font-semibold text-blue-600">
+                          {new Date(log.scheduled_time).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </p>
+                        <Badge 
+                          variant={log.status === 'taken' ? 'default' : log.status === 'missed' ? 'destructive' : 'outline'}
+                          className={
+                            log.status === 'taken' 
+                              ? 'bg-green-100 text-green-700 border-green-300'
+                              : log.status === 'missed'
+                              ? 'bg-red-100 text-red-700 border-red-300'
+                              : 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                          }
+                        >
+                          {log.status === 'taken' ? 'Taken' : log.status === 'missed' ? 'Missed' : 'Pending'}
                         </Badge>
                       </div>
                     </div>
@@ -242,7 +275,7 @@ const Dashboard = () => {
               ) : (
                 <div className="text-center py-12">
                   <Pill className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-xl font-medium">No data yet</p>
+                  <p className="text-gray-500 text-xl font-medium">No medications scheduled for today</p>
                   <p className="text-gray-400">Add your first medication to get started</p>
                   <Link to="/add-medication">
                     <Button className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
@@ -254,39 +287,45 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Health Insights */}
-          <Card className="bg-gradient-to-br from-white/90 to-emerald-50/70 backdrop-blur-xl border-2 border-emerald-200/30 shadow-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                <TrendingUp className="h-6 w-6 text-emerald-600" />
-                Health Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {medications.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                    <h3 className="font-semibold text-green-800 mb-2">✅ Great Adherence!</h3>
-                    <p className="text-green-700">You're maintaining excellent medication compliance</p>
+          {/* Health Insights with Upcoming Medications */}
+          <div className="space-y-6">
+            {/* Upcoming Medications */}
+            <UpcomingMedications />
+
+            {/* Health Insights */}
+            <Card className="bg-gradient-to-br from-white/90 to-emerald-50/70 backdrop-blur-xl border-2 border-emerald-200/30 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                  <TrendingUp className="h-6 w-6 text-emerald-600" />
+                  Health Insights
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {medications.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+                      <h3 className="font-semibold text-green-800 mb-2">✅ Great Adherence!</h3>
+                      <p className="text-green-700">You're maintaining excellent medication compliance</p>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                      <h3 className="font-semibold text-blue-800 mb-2">📊 Weekly Progress</h3>
+                      <p className="text-blue-700">Track your medication patterns and health trends</p>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+                      <h3 className="font-semibold text-purple-800 mb-2">💡 Recommendations</h3>
+                      <p className="text-purple-700">Consider setting up pill organizers for easier management</p>
+                    </div>
                   </div>
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-                    <h3 className="font-semibold text-blue-800 mb-2">📊 Weekly Progress</h3>
-                    <p className="text-blue-700">Track your medication patterns and health trends</p>
+                ) : (
+                  <div className="text-center py-8">
+                    <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500 text-lg font-medium">No data yet</p>
+                    <p className="text-gray-400">Health insights will appear once you start tracking medications</p>
                   </div>
-                  <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
-                    <h3 className="font-semibold text-purple-800 mb-2">💡 Recommendations</h3>
-                    <p className="text-purple-700">Consider setting up pill organizers for easier management</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <TrendingUp className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-xl font-medium">No data yet</p>
-                  <p className="text-gray-400">Health insights will appear once you start tracking medications</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

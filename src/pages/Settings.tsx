@@ -11,6 +11,13 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import CaregiverManagement from '@/components/CaregiverManagement';
+
+interface NotificationPreferences {
+  push: boolean;
+  email: boolean;
+  sms: boolean;
+}
 
 const Settings = () => {
   const { user, signOut } = useAuth();
@@ -23,8 +30,8 @@ const Settings = () => {
     notification_preferences: {
       push: true,
       email: true,
-      sms: true // SMS is automatically enabled
-    }
+      sms: true
+    } as NotificationPreferences
   });
 
   useEffect(() => {
@@ -44,14 +51,15 @@ const Settings = () => {
       if (error) throw error;
 
       if (data) {
+        const preferences = data.notification_preferences as any;
         setProfile({
           full_name: data.full_name || '',
           phone_number: data.phone_number || '',
           email: data.email || user?.email || '',
           notification_preferences: {
-            push: data.notification_preferences?.push ?? true,
-            email: data.notification_preferences?.email ?? true,
-            sms: true // SMS is always enabled
+            push: preferences?.push ?? true,
+            email: preferences?.email ?? true,
+            sms: preferences?.sms ?? true
           }
         });
       }
@@ -70,10 +78,7 @@ const Settings = () => {
           full_name: profile.full_name,
           phone_number: profile.phone_number,
           email: profile.email,
-          notification_preferences: {
-            ...profile.notification_preferences,
-            sms: true // Always keep SMS enabled
-          }
+          notification_preferences: profile.notification_preferences
         });
 
       if (error) throw error;
@@ -101,9 +106,7 @@ const Settings = () => {
     }));
   };
 
-  const handleNotificationChange = (type: string, enabled: boolean) => {
-    if (type === 'sms') return; // SMS cannot be disabled
-    
+  const handleNotificationChange = (type: keyof NotificationPreferences, enabled: boolean) => {
     setProfile(prev => ({
       ...prev,
       notification_preferences: {
@@ -200,14 +203,11 @@ const Settings = () => {
                     <h3 className="font-semibold text-green-800">📱 SMS Notifications</h3>
                     <p className="text-sm text-green-700">Receive medication reminders via text message</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch 
-                      checked={true} 
-                      disabled={true}
-                      className="data-[state=checked]:bg-green-500"
-                    />
-                    <span className="text-sm font-bold text-green-600">Always On</span>
-                  </div>
+                  <Switch 
+                    checked={profile.notification_preferences.sms}
+                    onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
+                    className="data-[state=checked]:bg-green-500"
+                  />
                 </div>
 
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
@@ -236,6 +236,11 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Caregiver Management */}
+          <div className="bg-gradient-to-br from-white/90 to-orange-50/70 backdrop-blur-xl border-2 border-orange-200/30 shadow-2xl rounded-lg">
+            <CaregiverManagement />
+          </div>
 
           {/* Account Actions */}
           <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
