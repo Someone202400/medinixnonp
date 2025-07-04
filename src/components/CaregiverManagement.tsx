@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -70,7 +69,13 @@ const CaregiverManagement = () => {
       if (editingCaregiver) {
         const { data, error } = await supabase
           .from('caregivers')
-          .update(caregiverData)
+          .update({
+            name: caregiverData.name,
+            email: caregiverData.email || null,
+            phone_number: caregiverData.phone_number || null,
+            relationship: caregiverData.relationship || null,
+            notifications_enabled: caregiverData.notifications_enabled
+          })
           .eq('id', editingCaregiver.id)
           .select()
           .single();
@@ -79,7 +84,14 @@ const CaregiverManagement = () => {
       } else {
         const { data, error } = await supabase
           .from('caregivers')
-          .insert([{ ...caregiverData, user_id: user!.id }])
+          .insert([{
+            name: caregiverData.name,
+            email: caregiverData.email || null,
+            phone_number: caregiverData.phone_number || null,
+            relationship: caregiverData.relationship || null,
+            notifications_enabled: caregiverData.notifications_enabled,
+            user_id: user!.id
+          }])
           .select()
           .single();
         if (error) throw error;
