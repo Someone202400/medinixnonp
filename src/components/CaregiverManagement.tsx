@@ -14,14 +14,34 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
+interface CaregiverFormData {
+  name: string;
+  email: string;
+  phone_number: string;
+  relationship: string;
+  notifications_enabled: boolean;
+}
+
+interface Caregiver {
+  id: string;
+  name: string;
+  email: string | null;
+  phone_number: string | null;
+  relationship: string | null;
+  notifications_enabled: boolean | null;
+  created_at: string;
+  updated_at: string;
+  user_id: string;
+}
+
 const CaregiverManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCaregiver, setEditingCaregiver] = useState(null);
+  const [editingCaregiver, setEditingCaregiver] = useState<Caregiver | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CaregiverFormData>({
     name: '',
     email: '',
     phone_number: '',
@@ -39,14 +59,14 @@ const CaregiverManagement = () => {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as Caregiver[];
     },
     enabled: !!user
   });
 
   // Add/Update caregiver mutation
   const caregiverMutation = useMutation({
-    mutationFn: async (caregiverData) => {
+    mutationFn: async (caregiverData: CaregiverFormData) => {
       if (editingCaregiver) {
         const { data, error } = await supabase
           .from('caregivers')
@@ -59,7 +79,7 @@ const CaregiverManagement = () => {
       } else {
         const { data, error } = await supabase
           .from('caregivers')
-          .insert([{ ...caregiverData, user_id: user.id }])
+          .insert([{ ...caregiverData, user_id: user!.id }])
           .select()
           .single();
         if (error) throw error;
@@ -75,7 +95,7 @@ const CaregiverManagement = () => {
         description: `${formData.name} has been ${editingCaregiver ? 'updated' : 'added'} successfully.`
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -86,7 +106,7 @@ const CaregiverManagement = () => {
 
   // Delete caregiver mutation
   const deleteMutation = useMutation({
-    mutationFn: async (caregiverId) => {
+    mutationFn: async (caregiverId: string) => {
       const { error } = await supabase
         .from('caregivers')
         .delete()
@@ -100,7 +120,7 @@ const CaregiverManagement = () => {
         description: "Caregiver has been removed successfully."
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -120,7 +140,7 @@ const CaregiverManagement = () => {
     setEditingCaregiver(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || (!formData.email && !formData.phone_number)) {
       toast({
@@ -133,19 +153,19 @@ const CaregiverManagement = () => {
     caregiverMutation.mutate(formData);
   };
 
-  const handleEdit = (caregiver) => {
+  const handleEdit = (caregiver: Caregiver) => {
     setEditingCaregiver(caregiver);
     setFormData({
       name: caregiver.name,
       email: caregiver.email || '',
       phone_number: caregiver.phone_number || '',
       relationship: caregiver.relationship || '',
-      notifications_enabled: caregiver.notifications_enabled
+      notifications_enabled: caregiver.notifications_enabled || true
     });
     setIsDialogOpen(true);
   };
 
-  const handleDelete = (caregiverId) => {
+  const handleDelete = (caregiverId: string) => {
     if (window.confirm('Are you sure you want to remove this caregiver?')) {
       deleteMutation.mutate(caregiverId);
     }

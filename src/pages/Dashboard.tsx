@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Calendar, Clock, Pill, TrendingUp, Users, MessageCircle, Stethoscope, Book } from "lucide-react";
+import { Calendar, Clock, Pill, TrendingUp, Users, MessageCircle, Stethoscope, Book, Settings as SettingsIcon, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "react-router-dom";
 import CaregiverManagement from "@/components/CaregiverManagement";
@@ -12,23 +11,8 @@ import CaregiverManagement from "@/components/CaregiverManagement";
 const Dashboard = () => {
   const { user } = useAuth();
 
-  const todaysMedications = [
-    { name: "Metformin", time: "8:00 AM", taken: true, dosage: "500mg" },
-    { name: "Lisinopril", time: "8:00 AM", taken: true, dosage: "10mg" },
-    { name: "Atorvastatin", time: "8:00 PM", taken: false, dosage: "20mg" },
-  ];
-
-  const adherenceData = {
-    thisWeek: 85,
-    thisMonth: 92,
-    overall: 88
-  };
-
-  const upcomingReminders = [
-    { medication: "Atorvastatin", time: "8:00 PM", today: true },
-    { medication: "Metformin", time: "8:00 AM", today: false, date: "Tomorrow" },
-    { medication: "Lisinopril", time: "8:00 AM", today: false, date: "Tomorrow" },
-  ];
+  // For now, showing "No data yet" until real medication data is integrated
+  const hasData = false;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 p-4">
@@ -51,7 +35,9 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Today's Progress</p>
-                  <p className="text-2xl font-bold text-green-600">2/3</p>
+                  <p className="text-2xl font-bold text-gray-400">
+                    {hasData ? "2/3" : "No data yet"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -65,7 +51,9 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">This Week</p>
-                  <p className="text-2xl font-bold text-blue-600">{adherenceData.thisWeek}%</p>
+                  <p className="text-2xl font-bold text-gray-400">
+                    {hasData ? "85%" : "No data yet"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -79,7 +67,9 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">This Month</p>
-                  <p className="text-2xl font-bold text-purple-600">{adherenceData.thisMonth}%</p>
+                  <p className="text-2xl font-bold text-gray-400">
+                    {hasData ? "92%" : "No data yet"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -93,7 +83,9 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Next Dose</p>
-                  <p className="text-lg font-bold text-orange-600">8:00 PM</p>
+                  <p className="text-lg font-bold text-gray-400">
+                    {hasData ? "8:00 PM" : "No data yet"}
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -110,22 +102,15 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {todaysMedications.map((med, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{med.name}</h3>
-                      <Badge variant={med.taken ? "default" : "secondary"}>
-                        {med.taken ? "Taken" : "Pending"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600">{med.dosage} at {med.time}</p>
-                  </div>
-                  {!med.taken && (
-                    <Button size="sm">Mark Taken</Button>
-                  )}
+              {hasData ? (
+                <div>Medication data will appear here</div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Pill className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No medications added yet</p>
+                  <p className="text-sm">Add your first medication to get started</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
 
@@ -138,27 +123,15 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm">This Week</span>
-                  <span className="text-sm font-medium">{adherenceData.thisWeek}%</span>
+              {hasData ? (
+                <div>Progress data will appear here</div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <TrendingUp className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No data yet</p>
+                  <p className="text-sm">Start tracking medications to see your progress</p>
                 </div>
-                <Progress value={adherenceData.thisWeek} className="h-2" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm">This Month</span>
-                  <span className="text-sm font-medium">{adherenceData.thisMonth}%</span>
-                </div>
-                <Progress value={adherenceData.thisMonth} className="h-2" />
-              </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm">Overall</span>
-                  <span className="text-sm font-medium">{adherenceData.overall}%</span>
-                </div>
-                <Progress value={adherenceData.overall} className="h-2" />
-              </div>
+              )}
             </CardContent>
           </Card>
 
@@ -171,19 +144,15 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {upcomingReminders.map((reminder, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{reminder.medication}</h3>
-                    <p className="text-sm text-gray-600">
-                      {reminder.today ? 'Today' : reminder.date} at {reminder.time}
-                    </p>
-                  </div>
-                  <Badge variant={reminder.today ? "default" : "outline"}>
-                    {reminder.today ? "Today" : "Upcoming"}
-                  </Badge>
+              {hasData ? (
+                <div>Reminders will appear here</div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>No reminders yet</p>
+                  <p className="text-sm">Add medications to set up reminders</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -194,7 +163,7 @@ const Dashboard = () => {
             <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <Link to="/symptom-checker">
                 <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
                   <Stethoscope className="h-6 w-6" />
@@ -207,14 +176,22 @@ const Dashboard = () => {
                   <span className="text-sm">Medication Library</span>
                 </Button>
               </Link>
-              <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
-                <Users className="h-6 w-6" />
-                <span className="text-sm">Add Medication</span>
-              </Button>
+              <Link to="/add-medication">
+                <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
+                  <Plus className="h-6 w-6" />
+                  <span className="text-sm">Add Medication</span>
+                </Button>
+              </Link>
               <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
                 <MessageCircle className="h-6 w-6" />
                 <span className="text-sm">Contact Doctor</span>
               </Button>
+              <Link to="/settings">
+                <Button variant="outline" className="w-full h-24 flex flex-col gap-2">
+                  <SettingsIcon className="h-6 w-6" />
+                  <span className="text-sm">Settings</span>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>

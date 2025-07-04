@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import MedicationLibraryPage from "./pages/MedicationLibraryPage";
+import AddMedicationPage from "./pages/AddMedicationPage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +44,11 @@ const App = () => (
               <Route path="/medication-library" element={
                 <ProtectedRoute>
                   <MedicationLibraryPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/add-medication" element={
+                <ProtectedRoute>
+                  <AddMedicationPage />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
