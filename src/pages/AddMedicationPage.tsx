@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Plus, Clock } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const AddMedicationPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
   const [medicationName, setMedicationName] = useState('');
   const [timesPerDay, setTimesPerDay] = useState('1');
   const [dosageAmount, setDosageAmount] = useState('');
@@ -27,6 +31,7 @@ const AddMedicationPage = () => {
     sunday: false,
     allDays: false
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const daysOfWeek = [
     { key: 'monday', label: 'Monday' },
@@ -70,9 +75,18 @@ const AddMedicationPage = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to add medications.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!medicationName || !dosageAmount || times.some(time => !time)) {
       toast({
         title: "Validation Error",
@@ -95,36 +109,73 @@ const AddMedicationPage = () => {
       return;
     }
 
-    // Here you would save the medication data
-    console.log({
-      name: medicationName,
-      timesPerDay: parseInt(timesPerDay),
-      times,
-      dosage: `${dosageAmount} ${dosageUnit}`,
-      days: selectedDaysList
-    });
+    setIsSubmitting(true);
 
-    toast({
-      title: "Medication Added",
-      description: `${medicationName} has been added to your medication list.`
-    });
+    try {
+      // Prepare medication data for database
+      const medicationData = {
+        user_id: user.id,
+        name: medicationName,
+        dosage: `${dosageAmount} ${dosageUnit}`,
+        frequency: `${timesPerDay} time${parseInt(timesPerDay) > 1 ? 's' : ''} daily`,
+        times: times,
+        start_date: new Date().toISOString().split('T')[0], // Today's date
+        active: true
+      };
 
-    // Reset form
-    setMedicationName('');
-    setTimesPerDay('1');
-    setDosageAmount('');
-    setDosageUnit('mg');
-    setTimes(['']);
-    setSelectedDays({
-      monday: false,
-      tuesday: false,
-      wednesday: false,
-      thursday: false,
-      friday: false,
-      saturday: false,
-      sunday: false,
-      allDays: false
-    });
+      console.log('Saving medication:', medicationData);
+
+      // Insert medication into database
+      const { data, error } = await supabase
+        .from('medications')
+        .insert(medicationData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Database error:', error);
+        throw error;
+      }
+
+      console.log('Medication saved successfully:', data);
+
+      toast({
+        title: "Medication Added",
+        description: `${medicationName} has been added to your medication list.`
+      });
+
+      // Reset form
+      setMedicationName('');
+      setTimesPerDay('1');
+      setDosageAmount('');
+      setDosageUnit('mg');
+      setTimes(['']);
+      setSelectedDays({
+        monday: false,
+        tuesday: false,
+        wednesday: false,
+        thursday: false,
+        friday: false,
+        saturday: false,
+        sunday: false,
+        allDays: false
+      });
+
+      // Navigate back to dashboard after successful save
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+
+    } catch (error) {
+      console.error('Error saving medication:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add medication. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -157,13 +208,14 @@ const AddMedicationPage = () => {
                   onChange={(e) => setMedicationName(e.target.value)}
                   placeholder="Enter medication name"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               {/* Times Per Day */}
               <div>
                 <Label htmlFor="timesPerDay">Times Per Day *</Label>
-                <Select value={timesPerDay} onValueChange={handleTimesPerDayChange}>
+                <Select value={timesPerDay} onValueChange={handleTimesPerDayChange} disabled={isSubmitting}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -195,6 +247,7 @@ const AddMedicationPage = () => {
                         value={time}
                         onChange={(e) => handleTimeChange(index, e.target.value)}
                         required
+                        disabled={isSubmitting}
                       />
                     </div>
                   ))}
@@ -214,8 +267,9 @@ const AddMedicationPage = () => {
                     min="0"
                     step="0.1"
                     required
+                    disabled={isSubmitting}
                   />
-                  <Select value={dosageUnit} onValueChange={setDosageUnit}>
+                  <Select value={dosageUnit} onValueChange={setDosageUnit} disabled={isSubmitting}>
                     <SelectTrigger className="w-32">
                       <SelectValue />
                     </SelectTrigger>
@@ -237,6 +291,7 @@ const AddMedicationPage = () => {
                       id="allDays"
                       checked={selectedDays.allDays}
                       onCheckedChange={(checked) => handleDayChange('allDays', checked as boolean)}
+                      disabled={isSubmitting}
                     />
                     <Label htmlFor="allDays" className="font-medium">All Days</Label>
                   </div>
@@ -248,7 +303,7 @@ const AddMedicationPage = () => {
                           id={day.key}
                           checked={selectedDays[day.key as keyof typeof selectedDays] as boolean}
                           onCheckedChange={(checked) => handleDayChange(day.key, checked as boolean)}
-                          disabled={selectedDays.allDays}
+                          disabled={selectedDays.allDays || isSubmitting}
                         />
                         <Label htmlFor={day.key}>{day.label}</Label>
                       </div>
@@ -259,12 +314,12 @@ const AddMedicationPage = () => {
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Link to="/dashboard">
-                  <Button type="button" variant="outline">
+                  <Button type="button" variant="outline" disabled={isSubmitting}>
                     Cancel
                   </Button>
                 </Link>
-                <Button type="submit">
-                  Add Medication
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? 'Adding...' : 'Add Medication'}
                 </Button>
               </div>
             </form>
