@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
 import CaregiverManagement from '@/components/CaregiverManagement';
 import { generateDailyMedicationSchedule, cleanupOldMedicationLogs } from '@/utils/medicationScheduler';
+import { checkForMissedMedications, scheduleUpcomingMedicationReminders } from '@/utils/notificationScheduler';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -37,6 +37,15 @@ const Dashboard = () => {
     if (user) {
       initializeDashboard();
       
+      // Set up periodic checks for missed medications and reminders
+      const missedMedsInterval = setInterval(() => {
+        checkForMissedMedications(user.id);
+      }, 5 * 60 * 1000); // Check every 5 minutes
+
+      const remindersInterval = setInterval(() => {
+        scheduleUpcomingMedicationReminders(user.id);
+      }, 15 * 60 * 1000); // Check every 15 minutes
+
       // Set up real-time subscription to refresh data when medications are added
       const channel = supabase
         .channel('medications-changes')
@@ -69,6 +78,8 @@ const Dashboard = () => {
         .subscribe();
 
       return () => {
+        clearInterval(missedMedsInterval);
+        clearInterval(remindersInterval);
         supabase.removeChannel(channel);
       };
     }
@@ -80,6 +91,12 @@ const Dashboard = () => {
       await fetchMedications();
       await generateTodaysSchedule();
       await fetchTodaysMedications();
+      
+      // Initial check for missed medications
+      if (user?.id) {
+        await checkForMissedMedications(user.id);
+        await scheduleUpcomingMedicationReminders(user.id);
+      }
     } catch (error) {
       console.error('Error initializing dashboard:', error);
     } finally {
@@ -122,7 +139,6 @@ const Dashboard = () => {
       const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Get today's medication logs (exclude archived)
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select(`
@@ -357,13 +373,8 @@ const Dashboard = () => {
 
           {/* Right Column: Upcoming Medications, Medication Adherence, and Caregiver Management */}
           <div className="space-y-6">
-            {/* Upcoming Medications */}
             <UpcomingMedications />
-
-            {/* Medication Adherence */}
             <MedicationAdherence />
-
-            {/* Caregiver Management */}
             <div className="bg-gradient-to-br from-white/90 to-orange-50/70 backdrop-blur-xl border-2 border-orange-200/30 shadow-2xl rounded-lg">
               <CaregiverManagement />
             </div>

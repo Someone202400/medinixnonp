@@ -28,14 +28,13 @@ const UpcomingMedications = () => {
   useEffect(() => {
     if (user) {
       fetchUpcomingMedications();
-      const interval = setInterval(fetchUpcomingMedications, 60000); // Refresh every minute
+      const interval = setInterval(fetchUpcomingMedications, 60000);
       return () => clearInterval(interval);
     }
   }, [user]);
 
   const fetchUpcomingMedications = async () => {
     try {
-      // Generate schedules for next few days
       if (user?.id) {
         await generateDailyMedicationSchedule(user.id, new Date());
         await generateDailyMedicationSchedule(user.id, addMinutes(new Date(), 24 * 60));
@@ -44,7 +43,6 @@ const UpcomingMedications = () => {
       const now = new Date();
       const next24Hours = addMinutes(now, 24 * 60);
 
-      // Get upcoming medication logs (exclude archived)
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select(`
@@ -81,8 +79,10 @@ const UpcomingMedications = () => {
 
   const markAsTaken = async (schedule: MedicationSchedule) => {
     try {
+      console.log('Marking medication as taken:', schedule.id);
+      
       // Update medication log
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('medication_logs')
         .update({
           status: 'taken',
@@ -90,7 +90,15 @@ const UpcomingMedications = () => {
         })
         .eq('id', schedule.id);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating medication log:', updateError);
+        throw updateError;
+      }
+
+      console.log('Medication log updated successfully');
+
+      // Create user notification
+      await createUserNotification(schedule);
 
       // Send notifications to caregivers
       await notifyCaregivers(schedule);
@@ -100,7 +108,6 @@ const UpcomingMedications = () => {
         description: `${schedule.medication_name} marked as taken.`,
       });
 
-      // Refresh the list
       fetchUpcomingMedications();
     } catch (error) {
       console.error('Error marking medication as taken:', error);
@@ -112,18 +119,58 @@ const UpcomingMedications = () => {
     }
   };
 
+  const createUserNotification = async (schedule: MedicationSchedule) => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      const userNotification = {
+        user_id: user?.id,
+        title: 'Medication Taken',
+        message: `You have successfully taken your ${schedule.medication_name} (${schedule.dosage}) at ${format(new Date(), 'h:mm a')}.`,
+        type: 'medication_taken',
+        scheduled_for: new Date().toISOString(),
+        channels: JSON.stringify(['push'])
+      };
+
+      console.log('Creating user notification:', userNotification);
+
+      const { error: userNotifError } = await supabase
+        .from('notifications')
+        .insert([userNotification]);
+
+      if (userNotifError) {
+        console.error('Error creating user notification:', userNotifError);
+      } else {
+        console.log('User notification created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating user notification:', error);
+    }
+  };
+
   const notifyCaregivers = async (schedule: MedicationSchedule) => {
     try {
+      console.log('Notifying caregivers for medication:', schedule.medication_name);
+      
       // Get caregivers with notifications enabled
-      const { data: caregivers, error } = await supabase
+      const { data: caregivers, error: caregiversError } = await supabase
         .from('caregivers')
         .select('*')
         .eq('user_id', user?.id)
         .eq('notifications_enabled', true);
 
-      if (error) throw error;
+      if (caregiversError) {
+        console.error('Error fetching caregivers:', caregiversError);
+        throw caregiversError;
+      }
 
-      // Get user profile for notification preferences
+      console.log('Found caregivers:', caregivers?.length || 0);
+
+      // Get user profile for notification
       const { data: profile } = await supabase
         .from('profiles')
         .select('*')
@@ -131,25 +178,35 @@ const UpcomingMedications = () => {
         .single();
 
       if (caregivers && caregivers.length > 0) {
-        const notificationMessage = `${profile?.full_name || 'Patient'} has taken their ${schedule.medication_name} (${schedule.dosage}) at ${format(new Date(), 'h:mm a')}.`;
+        const notificationMessage = `${profile?.full_name || profile?.email || 'Patient'} has taken their ${schedule.medication_name} (${schedule.dosage}) at ${format(new Date(), 'h:mm a')}.`;
 
         // Create notifications for each caregiver
         const notifications = caregivers.map(caregiver => ({
           user_id: user?.id,
           title: 'Medication Taken',
           message: notificationMessage,
-          type: 'medication_taken',
+          type: 'caregiver_notification',
           scheduled_for: new Date().toISOString(),
-          channels: JSON.stringify(['push', 'email', 'sms'])
+          channels: JSON.stringify(['push', 'email', 'sms']),
+          caregiver_id: caregiver.id
         }));
 
-        const { error: notifError } = await supabase.from('notifications').insert(notifications);
+        console.log('Creating caregiver notifications:', notifications.length);
+
+        const { error: notifError } = await supabase
+          .from('notifications')
+          .insert(notifications);
+
         if (notifError) {
           console.error('Error creating caregiver notifications:', notifError);
         } else {
+          console.log('Caregiver notifications created successfully');
+          
           // Send notifications via our notification service
           await sendNotifications(notifications, caregivers);
         }
+      } else {
+        console.log('No caregivers with notifications enabled found');
       }
     } catch (error) {
       console.error('Error notifying caregivers:', error);
@@ -158,13 +215,20 @@ const UpcomingMedications = () => {
 
   const sendNotifications = async (notifications: any[], caregivers: any[]) => {
     try {
-      // Send notifications via edge function
-      await supabase.functions.invoke('send-notifications', {
+      console.log('Sending notifications via edge function');
+      
+      const { data, error } = await supabase.functions.invoke('send-notifications', {
         body: {
           notifications,
           caregivers
         }
       });
+
+      if (error) {
+        console.error('Error calling send-notifications function:', error);
+      } else {
+        console.log('Notifications sent successfully:', data);
+      }
     } catch (error) {
       console.error('Error sending notifications:', error);
     }
