@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,16 @@ import {
   Home,
   Settings,
   User,
-  Menu
+  Menu,
+  LogOut
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Dashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -71,6 +73,10 @@ const Dashboard = () => {
                 <User className="h-4 w-4 mr-2" />
                 Profile
               </Button>
+              <Button variant="outline" size="sm" onClick={signOut}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
 
             {/* Mobile menu button */}
@@ -107,6 +113,12 @@ const Dashboard = () => {
                   Profile
                 </Button>
               </div>
+              <div className="px-2 py-1">
+                <Button variant="outline" size="sm" className="w-full justify-start" onClick={signOut}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -116,7 +128,7 @@ const Dashboard = () => {
         {/* Welcome Section */}
         <div className="mb-8 animate-fade-in">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome to MedCare! 🌟
+            Welcome back, {user?.email?.split('@')[0]}! 🌟
           </h1>
           <p className="text-gray-600">Start by adding your first medication to get personalized reminders and tracking</p>
         </div>
@@ -262,10 +274,12 @@ const Dashboard = () => {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Medication
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
-                  <AlertTriangle className="h-4 w-4 mr-2" />
-                  Symptom Checker
-                </Button>
+                <Link to="/symptom-checker" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <AlertTriangle className="h-4 w-4 mr-2" />
+                    Symptom Checker
+                  </Button>
+                </Link>
                 <Button variant="outline" className="w-full justify-start">
                   <Pill className="h-4 w-4 mr-2" />
                   Medication Library
