@@ -20,6 +20,7 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const { signUp, user } = useAuth();
 
   // Redirect if already logged in
@@ -32,12 +33,23 @@ const Register = () => {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    
+    // Clear password error when user starts typing
+    if (e.target.name === 'confirmPassword' || e.target.name === 'password') {
+      setPasswordError("");
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
+      setPasswordError("Passwords do not match");
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
       return;
     }
 
@@ -48,8 +60,13 @@ const Register = () => {
       phone_number: formData.phone
     };
 
-    await signUp(formData.email, formData.password, userData);
-    setIsLoading(false);
+    const { error } = await signUp(formData.email, formData.password, userData);
+    
+    // Only set loading to false if there was an error
+    // If successful, the redirect will happen automatically
+    if (error) {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,6 +99,7 @@ const Register = () => {
                     onChange={handleChange}
                     className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -98,6 +116,7 @@ const Register = () => {
                     onChange={handleChange}
                     className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                     required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -116,6 +135,7 @@ const Register = () => {
                   onChange={handleChange}
                   className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -133,6 +153,7 @@ const Register = () => {
                   onChange={handleChange}
                   className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -150,11 +171,13 @@ const Register = () => {
                   onChange={handleChange}
                   className="pl-10 pr-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -174,15 +197,20 @@ const Register = () => {
                   onChange={handleChange}
                   className="pl-10 pr-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
             
             <div className="flex items-center space-x-2">
@@ -191,6 +219,7 @@ const Register = () => {
                 type="checkbox"
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 required
+                disabled={isLoading}
               />
               <Label htmlFor="terms" className="text-sm">
                 I agree to the{" "}

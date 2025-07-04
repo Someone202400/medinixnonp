@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -34,19 +33,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Redirect to dashboard on successful login
+        // Automatic redirect to dashboard on successful authentication
         if (event === 'SIGNED_IN' && session?.user) {
-          window.location.href = '/dashboard';
+          // Only redirect if not already on dashboard
+          if (window.location.pathname !== '/dashboard') {
+            console.log('Redirecting to dashboard...');
+            window.location.href = '/dashboard';
+          }
+        }
+        
+        // Redirect to login if signed out and not on public pages
+        if (event === 'SIGNED_OUT') {
+          const publicPaths = ['/', '/login', '/register'];
+          if (!publicPaths.includes(window.location.pathname)) {
+            window.location.href = '/login';
+          }
         }
       }
     );
 
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Initial session check:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -56,6 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signUp = async (email: string, password: string, userData?: any) => {
+    console.log('Attempting signup for:', email);
     const redirectUrl = `${window.location.origin}/dashboard`;
     
     const { error } = await supabase.auth.signUp({
@@ -68,49 +82,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     if (error) {
+      console.error('Signup error:', error);
       toast({
         title: "Sign up failed",
         description: error.message,
         variant: "destructive"
       });
     } else {
+      console.log('Signup successful, redirecting...');
       toast({
         title: "Welcome to MedCare!",
-        description: "Your account has been created successfully. Redirecting to dashboard..."
+        description: "Account created successfully. Redirecting to dashboard..."
       });
+      // Force immediate redirect after successful signup
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
     }
 
     return { error };
   };
 
   const signIn = async (email: string, password: string) => {
+    console.log('Attempting signin for:', email);
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
     if (error) {
+      console.error('Signin error:', error);
       toast({
         title: "Sign in failed",
         description: error.message,
         variant: "destructive"
       });
     } else {
+      console.log('Signin successful, redirecting...');
       toast({
         title: "Welcome back!",
-        description: "You have successfully signed in. Redirecting to dashboard..."
+        description: "Signed in successfully. Redirecting to dashboard..."
       });
+      // Force immediate redirect after successful signin
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 1000);
     }
 
     return { error };
   };
 
   const signOut = async () => {
+    console.log('Signing out...');
     await supabase.auth.signOut();
     toast({
       title: "Signed out",
       description: "You have been signed out successfully."
     });
+    // Redirect to home page after signout
+    window.location.href = '/';
   };
 
   const value = {

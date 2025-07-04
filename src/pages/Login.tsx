@@ -24,8 +24,13 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    await signIn(email, password);
-    setIsLoading(false);
+    const { error } = await signIn(email, password);
+    
+    // Only set loading to false if there was an error
+    // If successful, the redirect will happen automatically
+    if (error) {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,6 +61,7 @@ const Login = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -71,11 +77,13 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10 border-gray-200 focus:border-blue-400 focus:ring-blue-400"
                   required
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  disabled={isLoading}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -87,6 +95,7 @@ const Login = () => {
                   id="remember"
                   type="checkbox"
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  disabled={isLoading}
                 />
                 <Label htmlFor="remember" className="text-sm">Remember me</Label>
               </div>
