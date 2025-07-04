@@ -17,7 +17,8 @@ import {
   Settings,
   User,
   Menu,
-  LogOut
+  LogOut,
+  BookOpen
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -280,10 +281,12 @@ const Dashboard = () => {
                     Symptom Checker
                   </Button>
                 </Link>
-                <Button variant="outline" className="w-full justify-start">
-                  <Pill className="h-4 w-4 mr-2" />
-                  Medication Library
-                </Button>
+                <Link to="/medication-library" className="block">
+                  <Button variant="outline" className="w-full justify-start">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Medication Library
+                  </Button>
+                </Link>
                 <Button variant="outline" className="w-full justify-start">
                   <Settings className="h-4 w-4 mr-2" />
                   Settings

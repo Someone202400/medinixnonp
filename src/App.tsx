@@ -12,6 +12,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
+import MedicationLibraryPage from "./pages/MedicationLibraryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,11 @@ const App = () => (
               <Route path="/symptom-checker" element={
                 <ProtectedRoute>
                   <SymptomCheckerPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/medication-library" element={
+                <ProtectedRoute>
+                  <MedicationLibraryPage />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

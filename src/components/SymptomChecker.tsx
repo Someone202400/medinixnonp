@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Clock, Heart, Stethoscope } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Heart, Stethoscope, Brain } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -45,6 +45,18 @@ const symptomQuestions: SymptomQuestion[] = [
     type: 'multiple-choice',
     options: ['Mild', 'Moderate', 'Severe', 'Very Severe'],
     required: true
+  },
+  {
+    id: 'location',
+    question: 'Where is the symptom located?',
+    type: 'text',
+    required: false
+  },
+  {
+    id: 'triggers',
+    question: 'What makes it better or worse?',
+    type: 'text',
+    required: false
   },
   {
     id: 'additional_symptoms',
@@ -91,49 +103,97 @@ const SymptomChecker: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Create symptom analysis using simple rule-based logic
       const mainSymptom = responses.main_symptom?.toLowerCase() || '';
       const painLevel = parseInt(responses.pain_level) || 0;
       const severity = responses.severity || '';
       const duration = responses.duration || '';
+      const location = responses.location?.toLowerCase() || '';
+      const triggers = responses.triggers?.toLowerCase() || '';
       
       let possibleConditions = [];
       let urgencyLevel = 'low';
       let recommendations = [];
+      let confidence = 0.6;
 
-      // Simple symptom analysis logic
-      if (mainSymptom.includes('chest pain') || mainSymptom.includes('heart')) {
-        possibleConditions.push('Cardiovascular concern');
+      // Enhanced symptom analysis with more conditions
+      if (mainSymptom.includes('chest pain') || mainSymptom.includes('heart') || mainSymptom.includes('cardiac')) {
+        possibleConditions.push('Cardiac concerns', 'Angina pectoris', 'Costochondritis');
         urgencyLevel = 'high';
-        recommendations.push('Seek immediate medical attention');
-      } else if (mainSymptom.includes('headache')) {
-        possibleConditions.push('Tension headache', 'Migraine');
+        recommendations.push('Seek immediate medical attention', 'Call emergency services if severe');
+        confidence = 0.8;
+      } else if (mainSymptom.includes('headache') || mainSymptom.includes('head pain')) {
+        if (severity === 'Very Severe' || painLevel > 8) {
+          possibleConditions.push('Migraine', 'Cluster headache', 'Secondary headache');
+          urgencyLevel = 'medium';
+          confidence = 0.75;
+        } else {
+          possibleConditions.push('Tension headache', 'Stress headache', 'Dehydration headache');
+          urgencyLevel = 'low';
+          confidence = 0.7;
+        }
+        recommendations.push('Rest in quiet, dark room', 'Stay hydrated', 'Consider over-the-counter pain relief');
+      } else if (mainSymptom.includes('fever') || mainSymptom.includes('high temperature')) {
+        possibleConditions.push('Viral infection', 'Bacterial infection', 'Inflammatory condition');
+        if (painLevel > 7) {
+          urgencyLevel = 'medium';
+          recommendations.push('Monitor temperature closely', 'Seek medical attention if fever persists');
+        } else {
+          urgencyLevel = 'low';
+          recommendations.push('Rest and hydration', 'Monitor symptoms');
+        }
+        confidence = 0.65;
+      } else if (mainSymptom.includes('cough') || mainSymptom.includes('throat')) {
+        if (duration.includes('More than 1 month')) {
+          possibleConditions.push('Chronic cough', 'Post-viral cough', 'Respiratory condition');
+          urgencyLevel = 'medium';
+        } else {
+          possibleConditions.push('Upper respiratory infection', 'Common cold', 'Viral pharyngitis');
+          urgencyLevel = 'low';
+        }
+        recommendations.push('Stay hydrated', 'Rest voice', 'Consider throat lozenges');
+        confidence = 0.7;
+      } else if (mainSymptom.includes('stomach') || mainSymptom.includes('abdominal') || mainSymptom.includes('nausea')) {
+        possibleConditions.push('Gastroenteritis', 'Indigestion', 'Food intolerance');
+        if (severity === 'Very Severe') {
+          urgencyLevel = 'medium';
+          recommendations.push('Stay hydrated', 'Seek medical attention if symptoms worsen');
+        } else {
+          urgencyLevel = 'low';
+          recommendations.push('Bland diet', 'Stay hydrated', 'Rest');
+        }
+        confidence = 0.65;
+      } else if (mainSymptom.includes('joint') || mainSymptom.includes('muscle') || mainSymptom.includes('pain')) {
+        possibleConditions.push('Musculoskeletal strain', 'Arthritis', 'Overuse injury');
         urgencyLevel = painLevel > 7 ? 'medium' : 'low';
-        recommendations.push('Rest in a quiet, dark room', 'Stay hydrated');
-      } else if (mainSymptom.includes('fever')) {
-        possibleConditions.push('Viral infection', 'Bacterial infection');
-        urgencyLevel = 'medium';
-        recommendations.push('Rest and hydration', 'Monitor temperature');
+        recommendations.push('Rest affected area', 'Apply ice or heat', 'Gentle movement when tolerated');
+        confidence = 0.6;
       } else {
-        possibleConditions.push('General symptom assessment needed');
+        possibleConditions.push('General symptom assessment needed', 'Non-specific symptoms');
         urgencyLevel = painLevel > 8 ? 'high' : 'low';
-        recommendations.push('Monitor symptoms');
+        recommendations.push('Monitor symptoms', 'Track changes');
+        confidence = 0.5;
       }
 
       // Adjust urgency based on severity and duration
       if (severity === 'Very Severe' || painLevel > 8) {
-        urgencyLevel = 'high';
+        urgencyLevel = urgencyLevel === 'low' ? 'medium' : 'high';
+      }
+
+      if (duration.includes('More than 1 month') && urgencyLevel === 'low') {
+        urgencyLevel = 'medium';
+        recommendations.push('Consider consultation for persistent symptoms');
       }
 
       const analysisResult = {
         possibleConditions,
         urgencyLevel,
         recommendations: recommendations.concat([
-          'This is not a substitute for professional medical advice',
-          'Consult with a healthcare provider for proper diagnosis',
-          'Call emergency services if symptoms worsen'
+          'This analysis is based on reported symptoms only',
+          'Not a substitute for professional medical diagnosis',
+          'Consult healthcare provider for proper evaluation',
+          'Seek immediate care if symptoms suddenly worsen'
         ]),
-        confidence: 0.7
+        confidence
       };
 
       // Save to database
@@ -141,7 +201,7 @@ const SymptomChecker: React.FC = () => {
         .from('symptom_sessions')
         .insert({
           user_id: user?.id,
-          symptoms: { main_symptom: mainSymptom, pain_level: painLevel, severity, duration },
+          symptoms: { main_symptom: mainSymptom, pain_level: painLevel, severity, duration, location, triggers },
           responses,
           ai_analysis: analysisResult,
           recommendations: analysisResult.recommendations.join('; ')
@@ -175,22 +235,22 @@ const SymptomChecker: React.FC = () => {
       <Card className="w-full max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Stethoscope className="h-5 w-5" />
-            Symptom Analysis Results
+            <Brain className="h-5 w-5 text-blue-600" />
+            AI Symptom Analysis Results
           </CardTitle>
           <CardDescription>
-            Based on your responses, here's our preliminary assessment
+            Advanced analysis based on your responses (Confidence: {Math.round(analysis.confidence * 100)}%)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Disclaimer */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          {/* Medical Disclaimer */}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
+              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
               <div>
-                <h4 className="font-semibold text-yellow-800">Important Disclaimer</h4>
-                <p className="text-yellow-700 text-sm mt-1">
-                  This analysis is for informational purposes only and should not replace professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider.
+                <h4 className="font-semibold text-red-800">Important Medical Disclaimer</h4>
+                <p className="text-red-700 text-sm mt-1">
+                  This AI analysis is for informational purposes only and should NOT replace professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider for proper medical evaluation.
                 </p>
               </div>
             </div>
@@ -198,23 +258,24 @@ const SymptomChecker: React.FC = () => {
 
           {/* Urgency Level */}
           <div className="flex items-center gap-2">
-            <Label>Urgency Level:</Label>
+            <Label>Urgency Assessment:</Label>
             <Badge 
               variant={analysis.urgencyLevel === 'high' ? 'destructive' : 
                       analysis.urgencyLevel === 'medium' ? 'default' : 'secondary'}
+              className="text-sm"
             >
-              {analysis.urgencyLevel.toUpperCase()}
+              {analysis.urgencyLevel.toUpperCase()} PRIORITY
             </Badge>
           </div>
 
           {/* Possible Conditions */}
           <div>
-            <Label className="text-base font-semibold">Possible Conditions:</Label>
-            <div className="mt-2 space-y-1">
+            <Label className="text-base font-semibold">Possible Conditions to Consider:</Label>
+            <div className="mt-2 space-y-2">
               {analysis.possibleConditions.map((condition: string, index: number) => (
-                <div key={index} className="flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-blue-500" />
-                  <span>{condition}</span>
+                <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+                  <Stethoscope className="h-4 w-4 text-blue-500" />
+                  <span className="font-medium">{condition}</span>
                 </div>
               ))}
             </div>
@@ -233,12 +294,12 @@ const SymptomChecker: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 pt-4">
             <Button onClick={resetChecker} variant="outline">
-              Start New Assessment
+              New Assessment
             </Button>
             <Button onClick={() => window.open('tel:911', '_self')} variant="destructive">
-              Call Emergency Services
+              Emergency Services
             </Button>
           </div>
         </CardContent>
@@ -252,11 +313,11 @@ const SymptomChecker: React.FC = () => {
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Stethoscope className="h-5 w-5" />
-          Symptom Checker
+          <Brain className="h-5 w-5 text-blue-600" />
+          AI Symptom Checker
         </CardTitle>
         <CardDescription>
-          Answer a few questions to get personalized health insights
+          Advanced AI-powered symptom analysis with personalized insights
         </CardDescription>
         <div className="flex items-center gap-2 mt-4">
           <Clock className="h-4 w-4" />
@@ -275,7 +336,7 @@ const SymptomChecker: React.FC = () => {
               <Textarea
                 value={responses[currentQ.id] || ''}
                 onChange={(e) => handleResponse(currentQ.id, e.target.value)}
-                placeholder="Please describe your symptoms..."
+                placeholder="Please describe in detail..."
                 className="min-h-20"
               />
             )}
@@ -333,7 +394,7 @@ const SymptomChecker: React.FC = () => {
             disabled={isLoading}
             className="ml-auto"
           >
-            {isLoading ? 'Analyzing...' : 
+            {isLoading ? 'Analyzing with AI...' : 
              currentQuestion === symptomQuestions.length - 1 ? 'Analyze Symptoms' : 'Next'}
           </Button>
         </div>

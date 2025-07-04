@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +37,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Redirect to dashboard on successful login
+        if (event === 'SIGNED_IN' && session?.user) {
+          window.location.href = '/dashboard';
+        }
       }
     );
 
@@ -70,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       toast({
         title: "Welcome to MedCare!",
-        description: "Your account has been created successfully."
+        description: "Your account has been created successfully. Redirecting to dashboard..."
       });
     }
 
@@ -92,7 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } else {
       toast({
         title: "Welcome back!",
-        description: "You have successfully signed in."
+        description: "You have successfully signed in. Redirecting to dashboard..."
       });
     }
 
