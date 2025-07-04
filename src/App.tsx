@@ -13,6 +13,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SymptomCheckerPage from "./pages/SymptomCheckerPage";
 import MedicationLibraryPage from "./pages/MedicationLibraryPage";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,11 @@ const App = () => (
               <Route path="/medication-library" element={
                 <ProtectedRoute>
                   <MedicationLibraryPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />
