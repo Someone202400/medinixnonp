@@ -37,9 +37,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Handle new user profile creation
-        if (event === 'SIGNED_UP' && session?.user) {
-          // The trigger will handle profile creation, but we might need to update it with additional data
+        // Handle new user profile creation - check if this is a new signup
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Check if user was just created (signup scenario)
           const userData = session.user.user_metadata;
           if (userData && (userData.phone_number || userData.full_name)) {
             setTimeout(async () => {
