@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,11 +31,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // Handle new user profile creation
+        if (event === 'SIGNED_UP' && session?.user) {
+          // The trigger will handle profile creation, but we might need to update it with additional data
+          const userData = session.user.user_metadata;
+          if (userData && (userData.phone_number || userData.full_name)) {
+            setTimeout(async () => {
+              try {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({
+                    full_name: userData.full_name,
+                    phone_number: userData.phone_number,
+                    notification_preferences: userData.notification_preferences || {
+                      push: true,
+                      email: true,
+                      sms: true
+                    }
+                  })
+                  .eq('id', session.user.id);
+                
+                if (error) {
+                  console.error('Error updating profile:', error);
+                }
+              } catch (error) {
+                console.error('Error in profile update:', error);
+              }
+            }, 1000);
+          }
+        }
         
         // Automatic redirect to dashboard on successful authentication
         if (event === 'SIGNED_IN' && session?.user) {
@@ -77,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: userData
+        data: userData // This will be stored in user_metadata and accessible in the trigger
       }
     });
 

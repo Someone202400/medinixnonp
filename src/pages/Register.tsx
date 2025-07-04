@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -57,9 +56,9 @@ const Register = () => {
 
     const userData = {
       full_name: `${formData.firstName} ${formData.lastName}`,
-      phone_number: formData.phone,
+      phone_number: formData.phone, // This will now be saved to the profile
       notification_preferences: {
-        sms: true, // Automatically enable SMS notifications
+        sms: true,
         push: true,
         email: true
       }
@@ -68,7 +67,6 @@ const Register = () => {
     const { error } = await signUp(formData.email, formData.password, userData);
     
     // Only set loading to false if there was an error
-    // If successful, the redirect will happen automatically
     if (error) {
       setIsLoading(false);
     }
