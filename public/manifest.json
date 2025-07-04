@@ -1,0 +1,31 @@
+
+{
+  "name": "MedCare - Medication Companion",
+  "short_name": "MedCare",
+  "description": "Advanced medication management platform with smart reminders and health tracking",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["health", "medical", "lifestyle"],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "type": "image/png",
+      "sizes": "1280x720"
+    }
+  ],
+  "permissions": [
+    "notifications",
+    "background-sync"
+  ],
+  "prefer_related_applications": false
+}
