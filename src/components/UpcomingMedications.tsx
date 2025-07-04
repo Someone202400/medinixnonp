@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, addMinutes, isToday, isTomorrow, parseISO } from 'date-fns';
+import { generateDailyMedicationSchedule } from '@/utils/medicationScheduler';
 
 interface MedicationSchedule {
   id: string;
@@ -35,66 +36,42 @@ const UpcomingMedications = () => {
 
   const fetchUpcomingMedications = async () => {
     try {
-      // Get active medications
-      const { data: medications, error: medError } = await supabase
-        .from('medications')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('active', true);
+      // Generate schedules for next few days
+      if (user?.id) {
+        await generateDailyMedicationSchedule(user.id, new Date());
+        await generateDailyMedicationSchedule(user.id, addMinutes(new Date(), 24 * 60));
+      }
 
-      if (medError) throw medError;
-
-      // Generate upcoming schedules for next 24 hours
-      const schedules: MedicationSchedule[] = [];
       const now = new Date();
       const next24Hours = addMinutes(now, 24 * 60);
 
-      medications?.forEach((med) => {
-        const times = med.times as string[];
-        times.forEach((time) => {
-          const [hours, minutes] = time.split(':').map(Number);
-          
-          // Create schedule for today
-          const todaySchedule = new Date();
-          todaySchedule.setHours(hours, minutes, 0, 0);
-          
-          if (todaySchedule > now && todaySchedule <= next24Hours) {
-            schedules.push({
-              id: `${med.id}-${time}-today`,
-              medication_id: med.id,
-              medication_name: med.name,
-              dosage: med.dosage,
-              scheduled_time: todaySchedule.toISOString(),
-              status: 'pending',
-              next_dose: todaySchedule
-            });
-          }
-          
-          // Create schedule for tomorrow if within 24 hours
-          const tomorrowSchedule = new Date();
-          tomorrowSchedule.setDate(tomorrowSchedule.getDate() + 1);
-          tomorrowSchedule.setHours(hours, minutes, 0, 0);
-          
-          if (tomorrowSchedule <= next24Hours) {
-            schedules.push({
-              id: `${med.id}-${time}-tomorrow`,
-              medication_id: med.id,
-              medication_name: med.name,
-              dosage: med.dosage,
-              scheduled_time: tomorrowSchedule.toISOString(),
-              status: 'pending',
-              next_dose: tomorrowSchedule
-            });
-          }
-        });
-      });
+      // Get upcoming medication logs
+      const { data: logs, error } = await supabase
+        .from('medication_logs')
+        .select(`
+          *,
+          medications (name, dosage)
+        `)
+        .eq('user_id', user?.id)
+        .gte('scheduled_time', now.toISOString())
+        .lte('scheduled_time', next24Hours.toISOString())
+        .eq('status', 'pending')
+        .order('scheduled_time', { ascending: true })
+        .limit(10);
 
-      // Sort by scheduled time
-      schedules.sort((a, b) => 
-        new Date(a.scheduled_time).getTime() - new Date(b.scheduled_time).getTime()
-      );
+      if (error) throw error;
 
-      setUpcomingMeds(schedules.slice(0, 10)); // Show next 10 medications
+      const schedules: MedicationSchedule[] = logs?.map(log => ({
+        id: log.id,
+        medication_id: log.medication_id,
+        medication_name: log.medications?.name || 'Unknown',
+        dosage: log.medications?.dosage || '',
+        scheduled_time: log.scheduled_time,
+        status: log.status as 'pending' | 'taken' | 'missed',
+        next_dose: new Date(log.scheduled_time)
+      })) || [];
+
+      setUpcomingMeds(schedules);
     } catch (error) {
       console.error('Error fetching upcoming medications:', error);
     } finally {
@@ -104,16 +81,14 @@ const UpcomingMedications = () => {
 
   const markAsTaken = async (schedule: MedicationSchedule) => {
     try {
-      // Create medication log entry
+      // Update medication log
       const { error } = await supabase
         .from('medication_logs')
-        .insert({
-          medication_id: schedule.medication_id,
-          user_id: user?.id,
-          scheduled_time: schedule.scheduled_time,
-          taken_at: new Date().toISOString(),
-          status: 'taken'
-        });
+        .update({
+          status: 'taken',
+          taken_at: new Date().toISOString()
+        })
+        .eq('id', schedule.id);
 
       if (error) throw error;
 

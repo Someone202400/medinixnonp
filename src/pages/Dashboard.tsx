@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,20 +20,23 @@ import {
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
 import CaregiverManagement from '@/components/CaregiverManagement';
+import { generateDailyMedicationSchedule } from '@/utils/medicationScheduler';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [medications, setMedications] = useState<any[]>([]);
   const [todaysMeds, setTodaysMeds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchMedications();
-      fetchTodaysMedications();
+      initializeDashboard();
+      
       // Set up real-time subscription to refresh data when medications are added
       const channel = supabase
         .channel('medications-changes')
@@ -46,8 +50,7 @@ const Dashboard = () => {
           },
           () => {
             console.log('Medications changed, refreshing...');
-            fetchMedications();
-            fetchTodaysMedications();
+            initializeDashboard();
           }
         )
         .on(
@@ -71,6 +74,18 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  const initializeDashboard = async () => {
+    try {
+      await fetchMedications();
+      await generateTodaysSchedule();
+      await fetchTodaysMedications();
+    } catch (error) {
+      console.error('Error initializing dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchMedications = async () => {
     try {
       const { data, error } = await supabase
@@ -84,8 +99,16 @@ const Dashboard = () => {
       setMedications(data || []);
     } catch (error) {
       console.error('Error fetching medications:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const generateTodaysSchedule = async () => {
+    try {
+      if (user?.id) {
+        await generateDailyMedicationSchedule(user.id);
+      }
+    } catch (error) {
+      console.error('Error generating today\'s schedule:', error);
     }
   };
 
@@ -211,7 +234,7 @@ const Dashboard = () => {
                 <div>
                   <p className="text-purple-100">Adherence Rate</p>
                   <p className="text-3xl font-bold">
-                    {medications.length > 0 ? "95%" : "0%"}
+                    {todaysMeds.length > 0 ? Math.round((todaysMeds.filter(med => med.status === 'taken').length / todaysMeds.length) * 100) + "%" : "0%"}
                   </p>
                 </div>
                 <TrendingUp className="h-10 w-10 text-purple-200" />
@@ -274,7 +297,7 @@ const Dashboard = () => {
             <CardContent>
               {todaysMeds.length > 0 ? (
                 <div className="space-y-4">
-                  {todaysMeds.map((log, index) => (
+                  {todaysMeds.slice(0, 5).map((log, index) => (
                     <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 shadow-lg">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center">
@@ -307,6 +330,11 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+                  {todaysMeds.length > 5 && (
+                    <p className="text-sm text-gray-500 text-center">
+                      And {todaysMeds.length - 5} more doses scheduled for today
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-12">
