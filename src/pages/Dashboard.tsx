@@ -24,7 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
 import CaregiverManagement from '@/components/CaregiverManagement';
-import { generateDailyMedicationSchedule } from '@/utils/medicationScheduler';
+import { generateDailyMedicationSchedule, cleanupOldMedicationLogs } from '@/utils/medicationScheduler';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -76,6 +76,7 @@ const Dashboard = () => {
 
   const initializeDashboard = async () => {
     try {
+      await cleanupOldMedicationLogs(user?.id || '');
       await fetchMedications();
       await generateTodaysSchedule();
       await fetchTodaysMedications();
@@ -96,6 +97,7 @@ const Dashboard = () => {
 
       if (error) throw error;
       
+      console.log('Fetched medications:', data?.length || 0);
       setMedications(data || []);
     } catch (error) {
       console.error('Error fetching medications:', error);
@@ -120,7 +122,7 @@ const Dashboard = () => {
       const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
 
-      // Get today's medication logs
+      // Get today's medication logs (exclude archived)
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select(`
@@ -130,10 +132,12 @@ const Dashboard = () => {
         .eq('user_id', user?.id)
         .gte('scheduled_time', startOfDay.toISOString())
         .lte('scheduled_time', endOfDay.toISOString())
+        .neq('status', 'archived')
         .order('scheduled_time', { ascending: true });
 
       if (error) throw error;
 
+      console.log('Fetched today\'s medications:', logs?.length || 0);
       setTodaysMeds(logs || []);
     } catch (error) {
       console.error('Error fetching today\'s medications:', error);

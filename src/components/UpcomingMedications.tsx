@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,7 +44,7 @@ const UpcomingMedications = () => {
       const now = new Date();
       const next24Hours = addMinutes(now, 24 * 60);
 
-      // Get upcoming medication logs
+      // Get upcoming medication logs (exclude archived)
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select(`
@@ -56,6 +55,7 @@ const UpcomingMedications = () => {
         .gte('scheduled_time', now.toISOString())
         .lte('scheduled_time', next24Hours.toISOString())
         .eq('status', 'pending')
+        .neq('status', 'archived')
         .order('scheduled_time', { ascending: true })
         .limit(10);
 
@@ -140,13 +140,33 @@ const UpcomingMedications = () => {
           message: notificationMessage,
           type: 'medication_taken',
           scheduled_for: new Date().toISOString(),
-          channels: ['push', 'email', 'sms']
+          channels: JSON.stringify(['push', 'email', 'sms'])
         }));
 
-        await supabase.from('notifications').insert(notifications);
+        const { error: notifError } = await supabase.from('notifications').insert(notifications);
+        if (notifError) {
+          console.error('Error creating caregiver notifications:', notifError);
+        } else {
+          // Send notifications via our notification service
+          await sendNotifications(notifications, caregivers);
+        }
       }
     } catch (error) {
       console.error('Error notifying caregivers:', error);
+    }
+  };
+
+  const sendNotifications = async (notifications: any[], caregivers: any[]) => {
+    try {
+      // Send notifications via edge function
+      await supabase.functions.invoke('send-notifications', {
+        body: {
+          notifications,
+          caregivers
+        }
+      });
+    } catch (error) {
+      console.error('Error sending notifications:', error);
     }
   };
 

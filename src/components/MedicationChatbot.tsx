@@ -53,6 +53,8 @@ const MedicationChatbot: React.FC<MedicationChatbotProps> = ({ onClose, medicati
     setIsLoading(true);
 
     try {
+      console.log('Sending message to chatbot:', inputMessage);
+      
       const { data, error } = await supabase.functions.invoke('medication-chat', {
         body: {
           message: inputMessage,
@@ -60,23 +62,26 @@ const MedicationChatbot: React.FC<MedicationChatbotProps> = ({ onClose, medicati
         }
       });
 
+      console.log('Chatbot response:', data, error);
+
       if (error) {
-        throw error;
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to get response from chatbot');
       }
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: data.response,
+        text: data?.response || 'I apologize, but I received an empty response. Please try again.',
         isUser: false,
         timestamp: new Date()
       };
 
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('Error sending message to chatbot:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: 'I apologize, but I\'m having trouble responding right now. Please try again later.',
+        text: `I apologize, but I'm having trouble responding right now. Error: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again later.`,
         isUser: false,
         timestamp: new Date()
       };

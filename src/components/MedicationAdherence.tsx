@@ -47,7 +47,7 @@ const MedicationAdherence = () => {
         };
       });
 
-      // Get medication logs for the last 7 days
+      // Get medication logs for the last 7 days (exclude archived)
       const startDate = startOfDay(subDays(new Date(), 6));
       const endDate = endOfDay(new Date());
 
@@ -56,7 +56,8 @@ const MedicationAdherence = () => {
         .select('*')
         .eq('user_id', user?.id)
         .gte('scheduled_time', startDate.toISOString())
-        .lte('scheduled_time', endDate.toISOString());
+        .lte('scheduled_time', endDate.toISOString())
+        .neq('status', 'archived');
 
       if (error) throw error;
 
