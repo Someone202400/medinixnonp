@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import UpcomingMedications from '@/components/UpcomingMedications';
+import MedicationAdherence from '@/components/MedicationAdherence';
+import CaregiverManagement from '@/components/CaregiverManagement';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -32,6 +33,41 @@ const Dashboard = () => {
     if (user) {
       fetchMedications();
       fetchTodaysMedications();
+      // Set up real-time subscription to refresh data when medications are added
+      const channel = supabase
+        .channel('medications-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'medications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Medications changed, refreshing...');
+            fetchMedications();
+            fetchTodaysMedications();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'medication_logs',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Medication logs changed, refreshing...');
+            fetchTodaysMedications();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -287,44 +323,18 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Health Insights with Upcoming Medications */}
+          {/* Right Column: Upcoming Medications, Medication Adherence, and Caregiver Management */}
           <div className="space-y-6">
             {/* Upcoming Medications */}
             <UpcomingMedications />
 
-            {/* Health Insights */}
-            <Card className="bg-gradient-to-br from-white/90 to-emerald-50/70 backdrop-blur-xl border-2 border-emerald-200/30 shadow-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                  <TrendingUp className="h-6 w-6 text-emerald-600" />
-                  Health Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {medications.length > 0 ? (
-                  <div className="space-y-4">
-                    <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                      <h3 className="font-semibold text-green-800 mb-2">✅ Great Adherence!</h3>
-                      <p className="text-green-700">You're maintaining excellent medication compliance</p>
-                    </div>
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-                      <h3 className="font-semibold text-blue-800 mb-2">📊 Weekly Progress</h3>
-                      <p className="text-blue-700">Track your medication patterns and health trends</p>
-                    </div>
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
-                      <h3 className="font-semibold text-purple-800 mb-2">💡 Recommendations</h3>
-                      <p className="text-purple-700">Consider setting up pill organizers for easier management</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <TrendingUp className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500 text-lg font-medium">No data yet</p>
-                    <p className="text-gray-400">Health insights will appear once you start tracking medications</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Medication Adherence */}
+            <MedicationAdherence />
+
+            {/* Caregiver Management */}
+            <div className="bg-gradient-to-br from-white/90 to-orange-50/70 backdrop-blur-xl border-2 border-orange-200/30 shadow-2xl rounded-lg">
+              <CaregiverManagement />
+            </div>
           </div>
         </div>
       </div>

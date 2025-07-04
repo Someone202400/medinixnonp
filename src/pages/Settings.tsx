@@ -11,7 +11,6 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import CaregiverManagement from '@/components/CaregiverManagement';
 
 interface NotificationPreferences {
   push: boolean;
@@ -51,16 +50,27 @@ const Settings = () => {
       if (error) throw error;
 
       if (data) {
-        const preferences = data.notification_preferences as any;
+        // Safely parse notification preferences from Json type
+        let preferences: NotificationPreferences = {
+          push: true,
+          email: true,
+          sms: true
+        };
+
+        if (data.notification_preferences && typeof data.notification_preferences === 'object') {
+          const prefs = data.notification_preferences as any;
+          preferences = {
+            push: prefs.push ?? true,
+            email: prefs.email ?? true,
+            sms: prefs.sms ?? true
+          };
+        }
+
         setProfile({
           full_name: data.full_name || '',
           phone_number: data.phone_number || '',
           email: data.email || user?.email || '',
-          notification_preferences: {
-            push: preferences?.push ?? true,
-            email: preferences?.email ?? true,
-            sms: preferences?.sms ?? true
-          }
+          notification_preferences: preferences
         });
       }
     } catch (error) {
@@ -71,6 +81,13 @@ const Settings = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
+      // Convert notification preferences to Json format
+      const preferencesJson = {
+        push: profile.notification_preferences.push,
+        email: profile.notification_preferences.email,
+        sms: profile.notification_preferences.sms
+      };
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -78,7 +95,7 @@ const Settings = () => {
           full_name: profile.full_name,
           phone_number: profile.phone_number,
           email: profile.email,
-          notification_preferences: profile.notification_preferences
+          notification_preferences: preferencesJson
         });
 
       if (error) throw error;
@@ -236,11 +253,6 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Caregiver Management */}
-          <div className="bg-gradient-to-br from-white/90 to-orange-50/70 backdrop-blur-xl border-2 border-orange-200/30 shadow-2xl rounded-lg">
-            <CaregiverManagement />
-          </div>
 
           {/* Account Actions */}
           <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
