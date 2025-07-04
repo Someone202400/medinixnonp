@@ -75,54 +75,69 @@ const ContactDoctorPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-purple-50 via-blue-50 to-emerald-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <Link to="/dashboard">
-            <Button variant="outline" className="mb-4 hover:bg-indigo-50 transition-colors">
+            <Button variant="outline" className="mb-4 bg-white/80 backdrop-blur-sm border-white/30 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 transition-all duration-300">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Dashboard
             </Button>
           </Link>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-teal-600 bg-clip-text text-transparent">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-rose-600 via-purple-600 via-blue-600 to-emerald-600 bg-clip-text text-transparent mb-3">
             Contact Healthcare Providers
           </h1>
-          <p className="text-gray-600 mt-2 text-lg">Find contact information for hospitals and emergency services</p>
+          <p className="text-gray-600 text-lg bg-white/60 backdrop-blur-sm rounded-lg p-3 inline-block">
+            Find contact information for hospitals and emergency services
+          </p>
         </div>
 
-        {/* Emergency Alert */}
-        <Card className="mb-8 bg-red-50 border-red-200 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <AlertTriangle className="h-8 w-8 text-red-600" />
+        {/* Emergency 911 Alert - More Prominent */}
+        <Card className="mb-8 bg-gradient-to-r from-red-500 to-red-600 text-white shadow-2xl transform hover:scale-[1.02] transition-all duration-300">
+          <CardContent className="p-8">
+            <div className="flex items-center gap-6">
+              <div className="bg-white/20 p-4 rounded-full">
+                <AlertTriangle className="h-12 w-12 text-white animate-pulse" />
+              </div>
               <div>
-                <h2 className="text-xl font-bold text-red-800">Emergency Alert</h2>
-                <p className="text-red-700">
-                  <strong>Call 911 immediately</strong> if you are experiencing a life-threatening emergency such as:
-                  chest pain, difficulty breathing, severe bleeding, loss of consciousness, or stroke symptoms.
+                <h2 className="text-3xl font-bold mb-3">🚨 EMERGENCY - CALL 911 🚨</h2>
+                <p className="text-xl font-semibold mb-2">
+                  Call 911 IMMEDIATELY for life-threatening emergencies:
                 </p>
+                <ul className="text-lg space-y-1">
+                  <li>• Chest pain or heart attack symptoms</li>
+                  <li>• Difficulty breathing or choking</li>
+                  <li>• Severe bleeding or trauma</li>
+                  <li>• Loss of consciousness</li>
+                  <li>• Stroke symptoms (face drooping, arm weakness, speech difficulty)</li>
+                </ul>
+                <div className="mt-4 p-4 bg-white/20 rounded-lg">
+                  <a href="tel:911" className="text-4xl font-black hover:text-yellow-200 transition-colors">
+                    📞 CALL 911 NOW
+                  </a>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Emergency Services */}
-        <Card className="mb-8 bg-white/90 backdrop-blur-md border-white/30 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-700">
-              <Phone className="h-5 w-5" />
-              Emergency Services
+        <Card className="mb-8 bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-orange-100 to-red-100">
+            <CardTitle className="flex items-center gap-2 text-red-700 text-2xl">
+              <Phone className="h-6 w-6" />
+              Emergency & Crisis Services
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {emergencyServices.map((service, index) => (
-                <div key={index} className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <h3 className="font-semibold text-red-800">{service.name}</h3>
-                  <a href={`tel:${service.phone}`} className="text-2xl font-bold text-red-600 hover:text-red-800">
+                <div key={index} className="p-6 bg-gradient-to-br from-white to-red-50 rounded-xl border-2 border-red-200 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                  <h3 className="font-bold text-xl text-red-800 mb-2">{service.name}</h3>
+                  <a href={`tel:${service.phone}`} className="text-3xl font-black text-red-600 hover:text-red-800 block mb-2 transition-colors">
                     {service.phone}
                   </a>
-                  <p className="text-sm text-red-700 mt-1">{service.description}</p>
+                  <p className="text-red-700 font-medium">{service.description}</p>
                 </div>
               ))}
             </div>
@@ -130,31 +145,31 @@ const ContactDoctorPage = () => {
         </Card>
 
         {/* Famous Hospitals and Clinics */}
-        <Card className="bg-white/90 backdrop-blur-md border-white/30 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-indigo-700">
-              <MapPin className="h-5 w-5" />
+        <Card className="bg-gradient-to-br from-blue-50 via-purple-50 to-emerald-50 border-2 border-white/50 shadow-2xl backdrop-blur-md">
+          <CardHeader className="bg-gradient-to-r from-blue-100 via-purple-100 to-emerald-100">
+            <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-blue-700 to-emerald-700 bg-clip-text text-transparent">
+              <MapPin className="h-6 w-6 text-blue-600" />
               Major Hospitals & Medical Centers
             </CardTitle>
-            <p className="text-gray-600">Contact information for renowned healthcare institutions</p>
+            <p className="text-gray-700 font-medium">Contact information for renowned healthcare institutions</p>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {hospitals.map((hospital, index) => (
-                <div key={index} className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                  <h3 className="font-bold text-lg text-gray-800 mb-2">{hospital.name}</h3>
+                <div key={index} className="p-6 bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl border-2 border-white/70 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 hover:rotate-1">
+                  <h3 className="font-bold text-xl bg-gradient-to-r from-blue-700 to-purple-700 bg-clip-text text-transparent mb-3">{hospital.name}</h3>
                   <p className="text-gray-600 mb-3 flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
+                    <MapPin className="h-4 w-4 text-blue-500" />
                     {hospital.location}
                   </p>
-                  <p className="text-sm text-indigo-600 mb-4 font-medium">{hospital.specialty}</p>
+                  <p className="text-sm bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4 font-bold">{hospital.specialty}</p>
                   
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <a 
                       href={`tel:${hospital.phone}`}
-                      className="flex items-center gap-2 text-green-600 hover:text-green-800 font-semibold"
+                      className="flex items-center gap-2 p-3 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg text-green-700 hover:from-green-200 hover:to-emerald-200 font-bold transition-all duration-300 transform hover:scale-105"
                     >
-                      <Phone className="h-4 w-4" />
+                      <Phone className="h-5 w-5" />
                       {hospital.phone}
                     </a>
                     
@@ -162,9 +177,9 @@ const ContactDoctorPage = () => {
                       href={hospital.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+                      className="flex items-center gap-2 p-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg text-blue-700 hover:from-blue-200 hover:to-purple-200 font-bold transition-all duration-300 transform hover:scale-105"
                     >
-                      <Globe className="h-4 w-4" />
+                      <Globe className="h-5 w-5" />
                       Visit Website
                     </a>
                   </div>
@@ -175,29 +190,53 @@ const ContactDoctorPage = () => {
         </Card>
 
         {/* Additional Resources */}
-        <Card className="mt-8 bg-white/90 backdrop-blur-md border-white/30 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-indigo-700">Additional Healthcare Resources</CardTitle>
+        <Card className="mt-8 bg-gradient-to-br from-emerald-50 to-teal-50 border-2 border-emerald-200 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-emerald-100 to-teal-100">
+            <CardTitle className="bg-gradient-to-r from-emerald-700 to-teal-700 bg-clip-text text-transparent text-2xl">Additional Healthcare Resources</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">Find Local Healthcare</h4>
-                <ul className="space-y-2 text-gray-600">
-                  <li>• Use your insurance provider's website to find in-network doctors</li>
-                  <li>• Contact your primary care physician first for non-emergency issues</li>
-                  <li>• Consider urgent care for non-life-threatening conditions</li>
-                  <li>• Use telehealth services for minor consultations</li>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4 p-6 bg-gradient-to-br from-white to-emerald-50 rounded-xl shadow-lg">
+                <h4 className="font-bold text-xl text-emerald-800">Find Local Healthcare</h4>
+                <ul className="space-y-3 text-emerald-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold">•</span>
+                    <span>Use your insurance provider's website to find in-network doctors</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold">•</span>
+                    <span>Contact your primary care physician first for non-emergency issues</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold">•</span>
+                    <span>Consider urgent care for non-life-threatening conditions</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-500 font-bold">•</span>
+                    <span>Use telehealth services for minor consultations</span>
+                  </li>
                 </ul>
               </div>
               
-              <div className="space-y-3">
-                <h4 className="font-semibold text-gray-800">When to Seek Help</h4>
-                <ul className="space-y-2 text-gray-600">
-                  <li>• <strong>911:</strong> Life-threatening emergencies</li>
-                  <li>• <strong>ER:</strong> Severe pain, serious injuries</li>
-                  <li>• <strong>Urgent Care:</strong> Minor injuries, illness</li>
-                  <li>• <strong>Primary Care:</strong> Routine check-ups, medication refills</li>
+              <div className="space-y-4 p-6 bg-gradient-to-br from-white to-teal-50 rounded-xl shadow-lg">
+                <h4 className="font-bold text-xl text-teal-800">When to Seek Help</h4>
+                <ul className="space-y-3 text-teal-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-red-500 font-bold">🚨</span>
+                    <span><strong>911:</strong> Life-threatening emergencies</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-500 font-bold">🏥</span>
+                    <span><strong>ER:</strong> Severe pain, serious injuries</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-yellow-500 font-bold">⚡</span>
+                    <span><strong>Urgent Care:</strong> Minor injuries, illness</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-500 font-bold">👩‍⚕️</span>
+                    <span><strong>Primary Care:</strong> Routine check-ups, medication refills</span>
+                  </li>
                 </ul>
               </div>
             </div>
