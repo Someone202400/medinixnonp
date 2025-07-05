@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,8 @@ import {
   Settings,
   Stethoscope,
   MessageSquare,
-  Library
+  Library,
+  UserPlus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +25,7 @@ import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-f
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
+import CaregiverManagement from '@/components/CaregiverManagement';
 import { generateWeeklySchedule, checkForMissedMedications } from '@/utils/medicationScheduler';
 import { initializeNotifications, sendPendingNotifications } from '@/utils/notificationService';
 
@@ -47,6 +48,7 @@ const Dashboard = () => {
   });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [showCaregivers, setShowCaregivers] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -269,7 +271,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <Link to="/add-medication">
                   <Button className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
                     <div className="text-center">
@@ -297,6 +299,16 @@ const Dashboard = () => {
                   </Button>
                 </Link>
 
+                <Button 
+                  onClick={() => setShowCaregivers(!showCaregivers)}
+                  className="w-full h-20 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300"
+                >
+                  <div className="text-center">
+                    <UserPlus className="h-6 w-6 mx-auto mb-1" />
+                    <span className="text-sm">Caregivers</span>
+                  </div>
+                </Button>
+
                 <Link to="/contact-doctor">
                   <Button className="w-full h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
                     <div className="text-center">
@@ -308,6 +320,13 @@ const Dashboard = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Caregiver Management */}
+          {showCaregivers && (
+            <div className="mb-8">
+              <CaregiverManagement />
+            </div>
+          )}
         </div>
 
         {/* Main Content Grid */}
