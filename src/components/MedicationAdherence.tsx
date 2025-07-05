@@ -1,29 +1,34 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts';
-import { TrendingUp, Calendar, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Minus, Calendar, Target, Award } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, subDays, startOfDay, endOfDay } from 'date-fns';
+import { format, startOfWeek, endOfWeek, subWeeks, startOfDay, endOfDay } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface AdherenceData {
   date: string;
   taken: number;
-  missed: number;
   total: number;
   percentage: number;
 }
 
-const MedicationAdherence = () => {
+interface MedicationAdherenceProps {
+  refreshTrigger?: number;
+}
+
+const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
   const { user } = useAuth();
-  const [adherenceData, setAdherenceData] = useState<AdherenceData[]>([]);
-  const [weeklyStats, setWeeklyStats] = useState({
-    totalDoses: 0,
-    takenDoses: 0,
-    missedDoses: 0,
-    adherenceRate: 0
+  const [weeklyData, setWeeklyData] = useState<AdherenceData[]>([]);
+  const [overallStats, setOverallStats] = useState({
+    currentWeekPercentage: 0,
+    lastWeekPercentage: 0,
+    monthlyAverage: 0,
+    totalTaken: 0,
+    totalScheduled: 0,
+    streak: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -31,82 +36,113 @@ const MedicationAdherence = () => {
     if (user) {
       fetchAdherenceData();
     }
-  }, [user]);
+  }, [user, refreshTrigger]);
 
   const fetchAdherenceData = async () => {
     try {
-      const last7Days = Array.from({ length: 7 }, (_, i) => {
-        const date = subDays(new Date(), 6 - i);
-        return {
-          date: format(date, 'yyyy-MM-dd'),
-          displayDate: format(date, 'MMM dd'),
-          taken: 0,
-          missed: 0,
-          total: 0,
-          percentage: 0
-        };
-      });
+      if (!user?.id) return;
 
-      // Get medication logs for the last 7 days (exclude archived)
-      const startDate = startOfDay(subDays(new Date(), 6));
-      const endDate = endOfDay(new Date());
+      const today = new Date();
+      const currentWeekStart = startOfWeek(today);
+      const currentWeekEnd = endOfWeek(today);
+      const lastWeekStart = startOfWeek(subWeeks(today, 1));
+      const lastWeekEnd = endOfWeek(subWeeks(today, 1));
+      const fourWeeksAgo = subWeeks(currentWeekStart, 3);
 
+      // Get logs for the last 4 weeks
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select('*')
-        .eq('user_id', user?.id)
-        .gte('scheduled_time', startDate.toISOString())
-        .lte('scheduled_time', endDate.toISOString())
-        .neq('status', 'archived');
+        .eq('user_id', user.id)
+        .gte('scheduled_time', fourWeeksAgo.toISOString())
+        .lte('scheduled_time', currentWeekEnd.toISOString())
+        .neq('status', 'archived')
+        .order('scheduled_time', { ascending: true });
 
       if (error) throw error;
 
-      // Process logs by date
-      const dataByDate: { [key: string]: { taken: number; missed: number; total: number } } = {};
-
-      logs?.forEach(log => {
-        const logDate = format(new Date(log.scheduled_time), 'yyyy-MM-dd');
-        if (!dataByDate[logDate]) {
-          dataByDate[logDate] = { taken: 0, missed: 0, total: 0 };
-        }
+      // Process weekly data
+      const weeklyStats: AdherenceData[] = [];
+      for (let i = 0; i < 4; i++) {
+        const weekStart = subWeeks(currentWeekStart, 3 - i);
+        const weekEnd = endOfWeek(weekStart);
         
-        dataByDate[logDate].total++;
-        if (log.status === 'taken') {
-          dataByDate[logDate].taken++;
-        } else if (log.status === 'missed') {
-          dataByDate[logDate].missed++;
-        }
-      });
+        const weekLogs = logs?.filter(log => {
+          const logDate = new Date(log.scheduled_time);
+          return logDate >= weekStart && logDate <= weekEnd;
+        }) || [];
 
-      // Update the last7Days array with actual data
-      const processedData = last7Days.map(day => {
-        const dayData = dataByDate[day.date] || { taken: 0, missed: 0, total: 0 };
-        const percentage = dayData.total > 0 ? Math.round((dayData.taken / dayData.total) * 100) : 0;
-        
-        return {
-          date: day.displayDate,
-          taken: dayData.taken,
-          missed: dayData.missed,
-          total: dayData.total,
+        const taken = weekLogs.filter(log => log.status === 'taken').length;
+        const total = weekLogs.length;
+        const percentage = total > 0 ? Math.round((taken / total) * 100) : 0;
+
+        weeklyStats.push({
+          date: format(weekStart, 'MMM d'),
+          taken,
+          total,
           percentage
-        };
+        });
+      }
+
+      setWeeklyData(weeklyStats);
+
+      // Calculate overall stats
+      const currentWeekLogs = logs?.filter(log => {
+        const logDate = new Date(log.scheduled_time);
+        return logDate >= currentWeekStart && logDate <= currentWeekEnd;
+      }) || [];
+
+      const lastWeekLogs = logs?.filter(log => {
+        const logDate = new Date(log.scheduled_time);
+        return logDate >= lastWeekStart && logDate <= lastWeekEnd;
+      }) || [];
+
+      const currentWeekTaken = currentWeekLogs.filter(log => log.status === 'taken').length;
+      const currentWeekTotal = currentWeekLogs.length;
+      const currentWeekPercentage = currentWeekTotal > 0 ? Math.round((currentWeekTaken / currentWeekTotal) * 100) : 0;
+
+      const lastWeekTaken = lastWeekLogs.filter(log => log.status === 'taken').length;
+      const lastWeekTotal = lastWeekLogs.length;
+      const lastWeekPercentage = lastWeekTotal > 0 ? Math.round((lastWeekTaken / lastWeekTotal) * 100) : 0;
+
+      const totalTaken = logs?.filter(log => log.status === 'taken').length || 0;
+      const totalScheduled = logs?.length || 0;
+      const monthlyAverage = weeklyStats.length > 0 ? Math.round(weeklyStats.reduce((sum, week) => sum + week.percentage, 0) / weeklyStats.length) : 0;
+
+      // Calculate streak (consecutive days with 100% adherence)
+      let streak = 0;
+      const today_start = startOfDay(today);
+      for (let i = 0; i < 30; i++) {
+        const checkDate = new Date(today_start);
+        checkDate.setDate(checkDate.getDate() - i);
+        const dayStart = startOfDay(checkDate);
+        const dayEnd = endOfDay(checkDate);
+
+        const dayLogs = logs?.filter(log => {
+          const logDate = new Date(log.scheduled_time);
+          return logDate >= dayStart && logDate <= dayEnd;
+        }) || [];
+
+        if (dayLogs.length === 0) continue;
+
+        const dayTaken = dayLogs.filter(log => log.status === 'taken').length;
+        const dayTotal = dayLogs.length;
+
+        if (dayTaken === dayTotal) {
+          streak++;
+        } else {
+          break;
+        }
+      }
+
+      setOverallStats({
+        currentWeekPercentage,
+        lastWeekPercentage,
+        monthlyAverage,
+        totalTaken,
+        totalScheduled,
+        streak
       });
-
-      setAdherenceData(processedData);
-
-      // Calculate weekly stats
-      const totalDoses = processedData.reduce((sum, day) => sum + day.total, 0);
-      const takenDoses = processedData.reduce((sum, day) => sum + day.taken, 0);
-      const missedDoses = processedData.reduce((sum, day) => sum + day.missed, 0);
-      const adherenceRate = totalDoses > 0 ? Math.round((takenDoses / totalDoses) * 100) : 0;
-
-      setWeeklyStats({
-        totalDoses,
-        takenDoses,
-        missedDoses,
-        adherenceRate
-      });
-
     } catch (error) {
       console.error('Error fetching adherence data:', error);
     } finally {
@@ -114,27 +150,44 @@ const MedicationAdherence = () => {
     }
   };
 
-  const chartConfig = {
-    percentage: {
-      label: "Adherence %",
-      color: "#3b82f6",
-    },
-    taken: {
-      label: "Taken",
-      color: "#10b981",
-    },
-    missed: {
-      label: "Missed",
-      color: "#ef4444",
-    },
+  const getTrendIcon = () => {
+    const diff = overallStats.currentWeekPercentage - overallStats.lastWeekPercentage;
+    if (diff > 0) return <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (diff < 0) return <TrendingDown className="h-4 w-4 text-red-600" />;
+    return <Minus className="h-4 w-4 text-gray-600" />;
   };
+
+  const getTrendColor = () => {
+    const diff = overallStats.currentWeekPercentage - overallStats.lastWeekPercentage;
+    if (diff > 0) return 'text-green-600';
+    if (diff < 0) return 'text-red-600';
+    return 'text-gray-600';
+  };
+
+  const getAdherenceColor = (percentage: number) => {
+    if (percentage >= 90) return 'text-green-600';
+    if (percentage >= 70) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getAdherenceBadge = (percentage: number) => {
+    if (percentage >= 95) return <Badge className="bg-green-100 text-green-700 border-green-300">🏆 Excellent</Badge>;
+    if (percentage >= 85) return <Badge className="bg-blue-100 text-blue-700 border-blue-300">👍 Good</Badge>;
+    if (percentage >= 70) return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">⚠️ Fair</Badge>;
+    return <Badge className="bg-red-100 text-red-700 border-red-300">⚡ Needs Improvement</Badge>;
+  };
+
+  const pieData = [
+    { name: 'Taken', value: overallStats.totalTaken, color: '#10b981' },
+    { name: 'Missed', value: overallStats.totalScheduled - overallStats.totalTaken, color: '#ef4444' }
+  ];
 
   if (loading) {
     return (
-      <Card className="bg-gradient-to-br from-white/90 to-emerald-50/70 backdrop-blur-xl border-2 border-emerald-200/30 shadow-2xl">
+      <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
         <CardContent className="p-6">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-emerald-500 border-t-transparent mx-auto mb-2"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-indigo-500 border-t-transparent mx-auto mb-2"></div>
             <p className="text-gray-600">Loading adherence data...</p>
           </div>
         </CardContent>
@@ -143,130 +196,141 @@ const MedicationAdherence = () => {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-white/90 to-emerald-50/70 backdrop-blur-xl border-2 border-emerald-200/30 shadow-2xl">
+    <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-          <TrendingUp className="h-6 w-6 text-emerald-600" />
+        <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+          <Target className="h-6 w-6 text-indigo-600" />
           Medication Adherence
+          {getAdherenceBadge(overallStats.currentWeekPercentage)}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Weekly Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <h3 className="font-semibold text-blue-800">Total Doses</h3>
+      <CardContent>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Stats Overview */}
+          <div className="space-y-4">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-blue-700 font-medium">This Week</span>
+                {getTrendIcon()}
+              </div>
+              <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.currentWeekPercentage)}`}>
+                {overallStats.currentWeekPercentage}%
+              </div>
+              <div className={`text-sm ${getTrendColor()}`}>
+                {overallStats.currentWeekPercentage > overallStats.lastWeekPercentage ? '+' : ''}
+                {overallStats.currentWeekPercentage - overallStats.lastWeekPercentage}% from last week
+              </div>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{weeklyStats.totalDoses}</p>
+
+            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-green-700 font-medium">Monthly Average</span>
+                <Calendar className="h-4 w-4 text-green-600" />
+              </div>
+              <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.monthlyAverage)}`}>
+                {overallStats.monthlyAverage}%
+              </div>
+              <div className="text-sm text-green-600">
+                {overallStats.totalTaken}/{overallStats.totalScheduled} doses taken
+              </div>
+            </div>
+
+            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-purple-700 font-medium">Current Streak</span>
+                <Award className="h-4 w-4 text-purple-600" />
+              </div>
+              <div className="text-3xl font-bold text-purple-600 mb-1">
+                {overallStats.streak}
+              </div>
+              <div className="text-sm text-purple-600">
+                {overallStats.streak === 1 ? 'day' : 'days'} of perfect adherence
+              </div>
+            </div>
           </div>
-          
-          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <h3 className="font-semibold text-green-800">Taken</h3>
+
+          {/* Weekly Trend Chart */}
+          <div className="lg:col-span-2">
+            <h3 className="font-semibold text-indigo-800 mb-4">4-Week Adherence Trend</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#6366f1"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="#6366f1"
+                    fontSize={12}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#f8fafc',
+                      border: '2px solid #6366f1',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      name === 'percentage' ? `${value}%` : value,
+                      name === 'percentage' ? 'Adherence' : name === 'taken' ? 'Taken' : 'Total'
+                    ]}
+                  />
+                  <Bar 
+                    dataKey="percentage" 
+                    fill="url(#colorGradient)"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <p className="text-2xl font-bold text-green-600">{weeklyStats.takenDoses}</p>
-          </div>
-          
-          <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border-2 border-red-200">
-            <div className="flex items-center gap-2 mb-2">
-              <XCircle className="h-4 w-4 text-red-600" />
-              <h3 className="font-semibold text-red-800">Missed</h3>
+
+            {/* Overall Progress Pie Chart */}
+            <div className="mt-6">
+              <h3 className="font-semibold text-indigo-800 mb-4">Overall Progress</h3>
+              <div className="flex items-center justify-center">
+                <div className="w-48 h-48">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        startAngle={90}
+                        endAngle={450}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="ml-6 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Taken: {overallStats.totalTaken}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                    <span className="text-sm font-medium">Missed: {overallStats.totalScheduled - overallStats.totalTaken}</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-2xl font-bold text-red-600">{weeklyStats.missedDoses}</p>
-          </div>
-          
-          <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-purple-600" />
-              <h3 className="font-semibold text-purple-800">Adherence</h3>
-            </div>
-            <p className="text-2xl font-bold text-purple-600">{weeklyStats.adherenceRate}%</p>
           </div>
         </div>
-
-        {/* Adherence Line Chart */}
-        {adherenceData.length > 0 ? (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-800">7-Day Adherence Trend</h3>
-            <ChartContainer config={chartConfig} className="h-64">
-              <LineChart data={adherenceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#64748b"
-                  fontSize={12}
-                />
-                <YAxis 
-                  stroke="#64748b"
-                  fontSize={12}
-                  domain={[0, 100]}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Line 
-                  type="monotone" 
-                  dataKey="percentage" 
-                  stroke="var(--color-percentage)"
-                  strokeWidth={3}
-                  dot={{ fill: "var(--color-percentage)", strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: "var(--color-percentage)", strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ChartContainer>
-
-            {/* Daily Breakdown Bar Chart */}
-            <h3 className="text-lg font-semibold text-gray-800">Daily Breakdown</h3>
-            <ChartContainer config={chartConfig} className="h-48">
-              <BarChart data={adherenceData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#64748b"
-                  fontSize={12}
-                />
-                <YAxis 
-                  stroke="#64748b"
-                  fontSize={12}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="taken" fill="var(--color-taken)" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="missed" fill="var(--color-missed)" radius={[2, 2, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg font-medium">No adherence data yet</p>
-            <p className="text-gray-400">Start taking your medications to see your adherence trends</p>
-          </div>
-        )}
-
-        {/* Insights */}
-        {weeklyStats.adherenceRate > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-lg font-semibold text-gray-800">Insights</h3>
-            {weeklyStats.adherenceRate >= 90 && (
-              <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                <h4 className="font-semibold text-green-800 mb-2">🎉 Excellent Adherence!</h4>
-                <p className="text-green-700">You're maintaining excellent medication compliance. Keep up the great work!</p>
-              </div>
-            )}
-            {weeklyStats.adherenceRate >= 70 && weeklyStats.adherenceRate < 90 && (
-              <div className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200">
-                <h4 className="font-semibold text-yellow-800 mb-2">⚠️ Good Progress</h4>
-                <p className="text-yellow-700">You're doing well, but there's room for improvement. Consider setting up reminders.</p>
-              </div>
-            )}
-            {weeklyStats.adherenceRate < 70 && weeklyStats.adherenceRate > 0 && (
-              <div className="p-4 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl border-2 border-red-200">
-                <h4 className="font-semibold text-red-800 mb-2">📊 Needs Attention</h4>
-                <p className="text-red-700">Your adherence could be improved. Talk to your healthcare provider about strategies to help you stay on track.</p>
-              </div>
-            )}
-          </div>
-        )}
       </CardContent>
     </Card>
   );

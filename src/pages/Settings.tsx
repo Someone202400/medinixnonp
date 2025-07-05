@@ -6,11 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Bell, Shield, Palette, Mail, Save, Lock, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Palette, Mail, Save, Lock, Eye, Trash2, Download, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/dataExport';
 import CaregiverManagement from '@/components/CaregiverManagement';
 
 interface NotificationPreferences {
@@ -22,6 +23,7 @@ const Settings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
     email: '',
@@ -48,7 +50,6 @@ const Settings = () => {
       if (error) throw error;
 
       if (data) {
-        // Safely parse notification preferences from Json type
         let preferences: NotificationPreferences = {
           push: true,
           email: true
@@ -76,7 +77,6 @@ const Settings = () => {
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Convert notification preferences to Json format
       const preferencesJson = {
         push: profile.notification_preferences.push,
         email: profile.notification_preferences.email
@@ -94,7 +94,7 @@ const Settings = () => {
       if (error) throw error;
 
       toast({
-        title: "Settings saved!",
+        title: "Settings saved! ✅",
         description: "Your preferences have been updated successfully.",
       });
     } catch (error) {
@@ -126,11 +126,41 @@ const Settings = () => {
     }));
   };
 
+  const handleDataExport = async (format: 'json' | 'csv') => {
+    if (!user?.id) return;
+
+    setExportLoading(true);
+    try {
+      const data = await exportUserData(user.id);
+      
+      if (format === 'json') {
+        downloadDataAsJSON(data);
+        toast({
+          title: "Data exported! 📁",
+          description: "Your data has been downloaded as a JSON file.",
+        });
+      } else {
+        downloadDataAsCSV(data);
+        toast({
+          title: "Data exported! 📊",
+          description: "Your data has been downloaded as a CSV file.",
+        });
+      }
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      toast({
+        title: "Export failed",
+        description: "Failed to export your data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setExportLoading(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
     if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       try {
-        // Note: In a real application, you'd want to handle this through an edge function
-        // as the auth.users table is not directly accessible from the client
         toast({
           title: "Account deletion requested",
           description: "Please contact support to complete account deletion.",
@@ -268,32 +298,42 @@ const Settings = () => {
                 </div>
 
                 <div className="p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border-2 border-green-200">
-                  <h3 className="font-semibold text-green-800 mb-2">Data Retention</h3>
+                  <h3 className="font-semibold text-green-800 mb-2">📁 Data Export</h3>
                   <p className="text-sm text-green-700 mb-3">
-                    Your medication and health data is stored securely and retained according to healthcare standards.
+                    Export all your medication history, caregiver information, and health data.
                   </p>
-                  <div className="text-xs text-green-600 bg-green-100 p-2 rounded">
-                    • Medication logs: Retained for 7 years<br/>
-                    • Symptom checker data: Retained for 3 years<br/>
-                    • Account data: Deleted within 30 days of account deletion
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="text-green-700 border-green-300 hover:bg-green-100"
+                      onClick={() => handleDataExport('json')}
+                      disabled={exportLoading}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {exportLoading ? 'Exporting...' : 'Export JSON'}
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="text-green-700 border-green-300 hover:bg-green-100"
+                      onClick={() => handleDataExport('csv')}
+                      disabled={exportLoading}
+                    >
+                      <FileText className="h-4 w-4 mr-2" />
+                      {exportLoading ? 'Exporting...' : 'Export CSV'}
+                    </Button>
                   </div>
                 </div>
 
                 <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200">
-                  <h3 className="font-semibold text-amber-800 mb-2">Data Export</h3>
+                  <h3 className="font-semibold text-amber-800 mb-2">Data Retention</h3>
                   <p className="text-sm text-amber-700 mb-3">
-                    You can request a copy of all your data at any time.
+                    Your medication and health data is stored securely and retained according to healthcare standards.
                   </p>
-                  <Button 
-                    variant="outline" 
-                    className="text-amber-700 border-amber-300 hover:bg-amber-100"
-                    onClick={() => toast({
-                      title: "Data export requested",
-                      description: "Your data export will be available for download within 24 hours.",
-                    })}
-                  >
-                    Request Data Export
-                  </Button>
+                  <div className="text-xs text-amber-600 bg-amber-100 p-2 rounded">
+                    • Medication logs: Retained for 7 years<br/>
+                    • Symptom checker data: Retained for 3 years<br/>
+                    • Account data: Deleted within 30 days of account deletion
+                  </div>
                 </div>
               </div>
             </CardContent>

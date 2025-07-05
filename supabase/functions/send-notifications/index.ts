@@ -1,211 +1,201 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface NotificationPayload {
-  notifications: Array<{
-    id?: string;
-    user_id: string;
-    title: string;
-    message: string;
-    type: string;
-    channels: string;
-    caregiver_id?: string;
-  }>;
-  caregivers: Array<{
-    id: string;
-    user_id: string;
-    name: string;
-    email?: string;
-    phone_number?: string;
-    notifications_enabled: boolean;
-  }>;
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const payload: NotificationPayload = await req.json();
-    const { notifications, caregivers } = payload;
+    const { notifications, caregivers } = await req.json()
     
-    console.log('Processing notifications:', notifications.length);
-    console.log('For caregivers:', caregivers.length);
+    console.log('Received notifications request:', {
+      notificationCount: notifications?.length,
+      caregiverCount: caregivers?.length
+    })
 
-    const results = {
-      sent: 0,
-      failed: 0,
-      errors: [] as string[]
-    };
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    )
 
-    // Process each notification
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    if (!resendApiKey) {
+      console.error('RESEND_API_KEY not configured')
+      return new Response(
+        JSON.stringify({ error: 'Email service not configured' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      )
+    }
+
+    // Get user profile for sender information
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('*')
+      .eq('id', notifications[0]?.user_id)
+      .single()
+
+    const patientName = profile?.full_name || profile?.email || 'Patient'
+
+    const results = []
+
     for (const notification of notifications) {
-      try {
-        const channels = JSON.parse(notification.channels || '[]');
+      const caregiver = caregivers.find(c => c.id === notification.caregiver_id)
+      
+      if (caregiver?.email) {
+        console.log(`Sending email to caregiver: ${caregiver.email}`)
         
-        // Find corresponding caregiver
-        const caregiver = caregivers.find(c => c.id === notification.caregiver_id);
+        const emailHtml = generateEmailTemplate(notification, caregiver, patientName)
         
-        if (!caregiver && notification.type === 'caregiver_notification') {
-          console.warn('No caregiver found for notification:', notification.id);
-          continue;
+        const emailPayload = {
+          from: 'MedCare App <noreply@yourdomain.com>',
+          to: [caregiver.email],
+          subject: notification.title,
+          html: emailHtml,
         }
 
-        let notificationSent = false;
+        try {
+          const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(emailPayload),
+          })
 
-        // Send Email notifications
-        if (channels.includes('email') && caregiver?.email) {
-          try {
-            await sendEmailNotification(caregiver.email, notification.title, notification.message);
-            console.log(`Email sent to ${caregiver.email}`);
-            notificationSent = true;
-          } catch (error) {
-            console.error('Email sending failed:', error);
-            results.errors.push(`Email to ${caregiver.email}: ${error.message}`);
+          if (response.ok) {
+            const result = await response.json()
+            console.log('Email sent successfully:', result.id)
+            results.push({ success: true, caregiver: caregiver.email, messageId: result.id })
+            
+            // Update notification status
+            await supabaseClient
+              .from('notifications')
+              .update({ 
+                status: 'sent', 
+                sent_at: new Date().toISOString() 
+              })
+              .eq('id', notification.id)
+          } else {
+            const errorText = await response.text()
+            console.error('Failed to send email:', response.status, errorText)
+            results.push({ success: false, caregiver: caregiver.email, error: errorText })
+            
+            // Update notification status
+            await supabaseClient
+              .from('notifications')
+              .update({ status: 'failed' })
+              .eq('id', notification.id)
           }
+        } catch (error) {
+          console.error('Error sending email:', error)
+          results.push({ success: false, caregiver: caregiver.email, error: error.message })
+          
+          // Update notification status
+          await supabaseClient
+            .from('notifications')
+            .update({ status: 'failed' })
+            .eq('id', notification.id)
         }
-
-        // Send SMS notifications
-        if (channels.includes('sms') && caregiver?.phone_number) {
-          try {
-            await sendSMSNotification(caregiver.phone_number, notification.message);
-            console.log(`SMS sent to ${caregiver.phone_number}`);
-            notificationSent = true;
-          } catch (error) {
-            console.error('SMS sending failed:', error);
-            results.errors.push(`SMS to ${caregiver.phone_number}: ${error.message}`);
-          }
-        }
-
-        // Send Push notifications
-        if (channels.includes('push')) {
-          try {
-            await sendPushNotification(notification.title, notification.message);
-            console.log(`Push notification sent: ${notification.title}`);
-            notificationSent = true;
-          } catch (error) {
-            console.error('Push notification failed:', error);
-            results.errors.push(`Push notification: ${error.message}`);
-          }
-        }
-
-        if (notificationSent) {
-          results.sent++;
-        } else {
-          results.failed++;
-        }
-
-      } catch (error) {
-        console.error('Error processing notification:', error);
-        results.failed++;
-        results.errors.push(`Processing error: ${error.message}`);
       }
     }
 
-    return new Response(JSON.stringify({ 
-      success: true, 
-      processed: notifications.length,
-      results
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ results }),
+      { 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
   } catch (error) {
-    console.error('Error in send-notifications function:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to process notifications',
-      details: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error in send-notifications function:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    )
   }
-});
+})
 
-async function sendEmailNotification(email: string, title: string, message: string) {
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+function generateEmailTemplate(notification: any, caregiver: any, patientName: string): string {
+  const isUrgent = notification.type.includes('missed')
+  const urgencyColor = isUrgent ? '#dc2626' : '#059669'
+  const urgencyBg = isUrgent ? '#fef2f2' : '#f0fdf4'
   
-  if (!resendApiKey) {
-    console.log('RESEND_API_KEY not configured, skipping email notification');
-    return;
-  }
-
-  const response = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${resendApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: 'Health Sync <notifications@resend.dev>',
-      to: [email],
-      subject: title,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">${title}</h2>
-          <p style="font-size: 16px; line-height: 1.5;">${message}</p>
-          <hr style="margin: 20px 0; border: none; border-top: 1px solid #e5e7eb;">
-          <p style="font-size: 14px; color: #6b7280;">
-            This notification was sent from your Health Sync medication tracking app.
-          </p>
+  return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${notification.title}</title>
+    </head>
+    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">💊 MedCare Alert</h1>
         </div>
-      `,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Email API error: ${error}`);
-  }
-}
-
-async function sendSMSNotification(phoneNumber: string, message: string) {
-  const twilioSid = Deno.env.get('TWILIO_ACCOUNT_SID');
-  const twilioToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-  const twilioFromNumber = Deno.env.get('TWILIO_FROM_NUMBER');
-  
-  if (!twilioSid || !twilioToken || !twilioFromNumber) {
-    console.log('Twilio credentials not configured, skipping SMS notification');
-    return;
-  }
-
-  const auth = btoa(`${twilioSid}:${twilioToken}`);
-  
-  const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Basic ${auth}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-    },
-    body: new URLSearchParams({
-      To: phoneNumber,
-      From: twilioFromNumber,
-      Body: `Health Sync: ${message}`,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`SMS API error: ${error}`);
-  }
-}
-
-async function sendPushNotification(title: string, message: string) {
-  // Web Push API implementation would go here
-  // For now, we'll log it as this requires more complex setup
-  console.log(`Push notification: ${title} - ${message}`);
-  
-  // In a real implementation, you would:
-  // 1. Store push subscription endpoints in the database
-  // 2. Use web-push library to send notifications
-  // 3. Handle VAPID keys for authentication
-  
-  return Promise.resolve();
+        
+        <div style="background: ${urgencyBg}; border: 2px solid ${urgencyColor}; border-radius: 0 0 10px 10px; padding: 30px;">
+            <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: ${urgencyColor}; margin-top: 0; font-size: 24px;">${notification.title}</h2>
+                
+                <p style="font-size: 16px; margin: 20px 0;">
+                    Hello <strong>${caregiver.name}</strong>,
+                </p>
+                
+                <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p style="font-size: 18px; margin: 0; color: #1f2937;">
+                        ${notification.message}
+                    </p>
+                </div>
+                
+                <div style="margin: 25px 0; padding: 15px; background: #e0f2fe; border-radius: 6px;">
+                    <p style="margin: 0; color: #0369a1;">
+                        <strong>Patient:</strong> ${patientName}<br>
+                        <strong>Time:</strong> ${new Date().toLocaleString()}<br>
+                        <strong>Your relationship:</strong> ${caregiver.relationship || 'Caregiver'}
+                    </p>
+                </div>
+                
+                ${isUrgent ? `
+                <div style="background: #fef2f2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <p style="color: #dc2626; margin: 0; font-weight: bold;">
+                        ⚠️ This is an urgent notification. Please check on ${patientName} when possible.
+                    </p>
+                </div>
+                ` : ''}
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://yourapp.com/dashboard" 
+                       style="display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px;">
+                        View Dashboard
+                    </a>
+                </div>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 25px 0;">
+                
+                <p style="font-size: 14px; color: #6b7280; text-align: center;">
+                    You're receiving this because you're listed as a caregiver for ${patientName}.<br>
+                    To unsubscribe from these notifications, please contact ${patientName} directly.
+                </p>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
+            <p>Sent by MedCare App • Helping families stay connected</p>
+        </div>
+    </body>
+    </html>
+  `
 }

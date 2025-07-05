@@ -1,102 +1,78 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { 
+  Plus, 
   Calendar, 
   Clock, 
+  Activity, 
+  Heart, 
+  AlertCircle,
   Pill,
-  User,
   TrendingUp,
-  Bell,
-  Phone,
+  Users,
   Settings,
   Stethoscope,
-  BookOpen,
-  Plus,
-  Activity
+  MessageSquare,
+  Library
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
-import CaregiverManagement from '@/components/CaregiverManagement';
-import { generateDailyMedicationSchedule, cleanupOldMedicationLogs } from '@/utils/medicationScheduler';
-import { checkForMissedMedications, scheduleUpcomingMedicationReminders } from '@/utils/notificationScheduler';
+import { generateWeeklySchedule, checkForMissedMedications } from '@/utils/medicationScheduler';
+import { initializeNotifications, sendPendingNotifications } from '@/utils/notificationService';
+
+interface DashboardStats {
+  totalMedications: number;
+  todaysTaken: number;
+  todaysTotal: number;
+  weeklyAdherence: number;
+  missedThisWeek: number;
+}
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [medications, setMedications] = useState<any[]>([]);
-  const [todaysMeds, setTodaysMeds] = useState<any[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalMedications: 0,
+    todaysTaken: 0,
+    todaysTotal: 0,
+    weeklyAdherence: 0,
+    missedThisWeek: 0
+  });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       initializeDashboard();
-      
-      // Set up periodic checks for missed medications and reminders
-      const missedMedsInterval = setInterval(() => {
+      const interval = setInterval(() => {
         checkForMissedMedications(user.id);
-      }, 5 * 60 * 1000); // Check every 5 minutes
-
-      const remindersInterval = setInterval(() => {
-        scheduleUpcomingMedicationReminders(user.id);
-      }, 15 * 60 * 1000); // Check every 15 minutes
-
-      // Set up real-time subscription to refresh data when medications are added
-      const channel = supabase
-        .channel('medications-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'medications',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            console.log('Medications changed, refreshing...');
-            initializeDashboard();
-          }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'medication_logs',
-            filter: `user_id=eq.${user.id}`
-          },
-          () => {
-            console.log('Medication logs changed, refreshing...');
-            fetchTodaysMedications();
-          }
-        )
-        .subscribe();
-
-      return () => {
-        clearInterval(missedMedsInterval);
-        clearInterval(remindersInterval);
-        supabase.removeChannel(channel);
-      };
+        sendPendingNotifications();
+      }, 60000); // Check every minute
+      
+      return () => clearInterval(interval);
     }
   }, [user]);
 
   const initializeDashboard = async () => {
     try {
-      await cleanupOldMedicationLogs(user?.id || '');
-      await fetchMedications();
-      await generateTodaysSchedule();
-      await fetchTodaysMedications();
+      // Initialize notifications
+      await initializeNotifications();
       
-      // Initial check for missed medications
+      // Generate weekly medication schedule
       if (user?.id) {
+        await generateWeeklySchedule(user.id);
         await checkForMissedMedications(user.id);
-        await scheduleUpcomingMedicationReminders(user.id);
       }
+      
+      // Fetch dashboard stats
+      await fetchDashboardStats();
     } catch (error) {
       console.error('Error initializing dashboard:', error);
     } finally {
@@ -104,282 +80,249 @@ const Dashboard = () => {
     }
   };
 
-  const fetchMedications = async () => {
+  const fetchDashboardStats = async () => {
     try {
-      const { data, error } = await supabase
+      if (!user?.id) return;
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const weekStart = startOfWeek(today);
+      const weekEnd = endOfWeek(today);
+
+      // Get total active medications
+      const { data: medications } = await supabase
         .from('medications')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .eq('active', true);
 
-      if (error) throw error;
-      
-      console.log('Fetched medications:', data?.length || 0);
-      setMedications(data || []);
-    } catch (error) {
-      console.error('Error fetching medications:', error);
-    }
-  };
-
-  const generateTodaysSchedule = async () => {
-    try {
-      if (user?.id) {
-        await generateDailyMedicationSchedule(user.id);
-      }
-    } catch (error) {
-      console.error('Error generating today\'s schedule:', error);
-    }
-  };
-
-  const fetchTodaysMedications = async () => {
-    try {
-      const today = new Date();
-      const startOfDay = new Date(today);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(today);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      const { data: logs, error } = await supabase
+      // Get today's medication logs
+      const { data: todayLogs } = await supabase
         .from('medication_logs')
-        .select(`
-          *,
-          medications (name, dosage)
-        `)
-        .eq('user_id', user?.id)
-        .gte('scheduled_time', startOfDay.toISOString())
-        .lte('scheduled_time', endOfDay.toISOString())
-        .neq('status', 'archived')
-        .order('scheduled_time', { ascending: true });
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('scheduled_time', today.toISOString())
+        .lt('scheduled_time', tomorrow.toISOString())
+        .neq('status', 'archived');
 
-      if (error) throw error;
+      // Get this week's logs for adherence calculation
+      const { data: weekLogs } = await supabase
+        .from('medication_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('scheduled_time', weekStart.toISOString())
+        .lte('scheduled_time', weekEnd.toISOString())
+        .neq('status', 'archived');
 
-      console.log('Fetched today\'s medications:', logs?.length || 0);
-      setTodaysMeds(logs || []);
+      const todaysTaken = todayLogs?.filter(log => log.status === 'taken').length || 0;
+      const todaysTotal = todayLogs?.length || 0;
+      
+      const weeklyTaken = weekLogs?.filter(log => log.status === 'taken').length || 0;
+      const weeklyTotal = weekLogs?.length || 0;
+      const weeklyAdherence = weeklyTotal > 0 ? Math.round((weeklyTaken / weeklyTotal) * 100) : 0;
+      
+      const missedThisWeek = weekLogs?.filter(log => log.status === 'missed').length || 0;
+
+      setStats({
+        totalMedications: medications?.length || 0,
+        todaysTaken,
+        todaysTotal,
+        weeklyAdherence,
+        missedThisWeek
+      });
     } catch (error) {
-      console.error('Error fetching today\'s medications:', error);
+      console.error('Error fetching dashboard stats:', error);
     }
   };
 
-  const quickActions = [
-    {
-      title: "Add Medication",
-      icon: Plus,
-      link: "/add-medication",
-      gradient: "from-emerald-400 to-cyan-400",
-      hoverGradient: "hover:from-emerald-500 hover:to-cyan-500"
-    },
-    {
-      title: "Symptom Checker",
-      icon: Stethoscope,
-      link: "/symptom-checker",
-      gradient: "from-blue-400 to-purple-400",
-      hoverGradient: "hover:from-blue-500 hover:to-purple-500"
-    },
-    {
-      title: "Medication Library",
-      icon: BookOpen,
-      link: "/medication-library",
-      gradient: "from-purple-400 to-pink-400",
-      hoverGradient: "hover:from-purple-500 hover:to-pink-500"
-    },
-    {
-      title: "Contact Doctor",
-      icon: Phone,
-      link: "/contact-doctor",
-      gradient: "from-orange-400 to-red-400",
-      hoverGradient: "hover:from-orange-500 hover:to-red-500"
-    },
-    {
-      title: "Settings",
-      icon: Settings,
-      link: "/settings",
-      gradient: "from-gray-400 to-slate-400",
-      hoverGradient: "hover:from-gray-500 hover:to-slate-500"
-    }
-  ];
+  const handleMedicationTaken = () => {
+    setRefreshTrigger(prev => prev + 1);
+    fetchDashboardStats();
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-rose-100 via-purple-100 via-blue-100 via-emerald-100 to-amber-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Loading your dashboard...</p>
+          <p className="text-gray-600 text-xl">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-100 via-purple-100 via-blue-100 via-emerald-100 to-amber-100 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-rose-600 via-purple-600 via-blue-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-            Welcome back! 👋
-          </h1>
-          <p className="text-gray-600 text-xl bg-white/60 backdrop-blur-sm rounded-lg p-3 inline-block">
-            Here's your health overview for today
-          </p>
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <h1 className="text-5xl font-bold bg-gradient-to-r from-rose-600 via-purple-600 via-blue-600 to-emerald-600 bg-clip-text text-transparent mb-3">
+                {getGreeting()}! 👋
+              </h1>
+              <p className="text-gray-600 text-lg bg-white/60 backdrop-blur-sm rounded-lg p-3 inline-block">
+                Here's your medication overview for {format(new Date(), 'EEEE, MMMM d, yyyy')}
+              </p>
+            </div>
+            <Link to="/settings">
+              <Button variant="outline" className="bg-white/80 backdrop-blur-sm border-white/30 hover:bg-gradient-to-r hover:from-purple-100 hover:to-pink-100 transition-all duration-300">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </Link>
+          </div>
+
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <Card className="bg-gradient-to-br from-white/90 to-green-50/70 backdrop-blur-xl border-2 border-green-200/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-green-700 text-sm font-medium">Today's Progress</p>
+                    <p className="text-3xl font-bold text-green-800">
+                      {stats.todaysTaken}/{stats.todaysTotal}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center">
+                    <Calendar className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="w-full bg-green-100 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-400 to-emerald-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${stats.todaysTotal > 0 ? (stats.todaysTaken / stats.todaysTotal) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-white/90 to-blue-50/70 backdrop-blur-xl border-2 border-blue-200/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-blue-700 text-sm font-medium">Active Medications</p>
+                    <p className="text-3xl font-bold text-blue-800">{stats.totalMedications}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center">
+                    <Pill className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-purple-700 text-sm font-medium">Weekly Adherence</p>
+                    <p className="text-3xl font-bold text-purple-800">{stats.weeklyAdherence}%</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <div className="w-full bg-purple-100 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-purple-400 to-pink-400 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${stats.weeklyAdherence}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-red-700 text-sm font-medium">Missed This Week</p>
+                    <p className="text-3xl font-bold text-red-800">{stats.missedThisWeek}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-gradient-to-br from-red-400 to-pink-400 rounded-full flex items-center justify-center">
+                    <AlertCircle className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-400 to-blue-600 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100">Active Medications</p>
-                  <p className="text-3xl font-bold">{medications.length || 0}</p>
-                </div>
-                <Pill className="h-10 w-10 text-blue-200" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Today's Medications */}
+          <TodaysMedications onMedicationTaken={handleMedicationTaken} />
 
-          <Card className="bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-emerald-100">Doses Today</p>
-                  <p className="text-3xl font-bold">{todaysMeds.length || 0}</p>
-                </div>
-                <Clock className="h-10 w-10 text-emerald-200" />
-              </div>
-            </CardContent>
-          </Card>
+          {/* Upcoming Medications */}
+          <UpcomingMedications refreshTrigger={refreshTrigger} />
+        </div>
 
-          <Card className="bg-gradient-to-br from-purple-400 to-purple-600 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-purple-100">Adherence Rate</p>
-                  <p className="text-3xl font-bold">
-                    {todaysMeds.length > 0 ? Math.round((todaysMeds.filter(med => med.status === 'taken').length / todaysMeds.length) * 100) + "%" : "0%"}
-                  </p>
-                </div>
-                <TrendingUp className="h-10 w-10 text-purple-200" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-xl transform hover:scale-105 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100">Health Score</p>
-                  <p className="text-3xl font-bold">
-                    {medications.length > 0 ? "Good" : "N/A"}
-                  </p>
-                </div>
-                <Activity className="h-10 w-10 text-orange-200" />
-              </div>
-            </CardContent>
-          </Card>
+        {/* Medication Adherence */}
+        <div className="mb-8">
+          <MedicationAdherence refreshTrigger={refreshTrigger} />
         </div>
 
         {/* Quick Actions */}
-        <Card className="mb-8 bg-gradient-to-br from-white/90 to-white/70 backdrop-blur-xl border-2 border-white/30 shadow-2xl">
+        <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              <Bell className="h-6 w-6 text-purple-600" />
+            <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+              <Activity className="h-6 w-6 text-indigo-600" />
               Quick Actions
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {quickActions.map((action, index) => {
-                const Icon = action.icon;
-                return (
-                  <Link key={index} to={action.link}>
-                    <Button
-                      variant="outline"
-                      className={`h-20 w-full flex flex-col items-center gap-2 bg-gradient-to-br ${action.gradient} ${action.hoverGradient} text-white border-0 shadow-lg transform hover:scale-110 transition-all duration-300 hover:shadow-xl`}
-                    >
-                      <Icon className="h-6 w-6" />
-                      <span className="text-xs font-bold">{action.title}</span>
-                    </Button>
-                  </Link>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link to="/add-medication">
+                <Button className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <div className="text-center">
+                    <Plus className="h-6 w-6 mx-auto mb-1" />
+                    <span className="text-sm">Add Medication</span>
+                  </div>
+                </Button>
+              </Link>
+
+              <Link to="/symptom-checker">
+                <Button className="w-full h-20 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <div className="text-center">
+                    <Stethoscope className="h-6 w-6 mx-auto mb-1" />
+                    <span className="text-sm">Symptom Checker</span>
+                  </div>
+                </Button>
+              </Link>
+
+              <Link to="/medication-library">
+                <Button className="w-full h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <div className="text-center">
+                    <Library className="h-6 w-6 mx-auto mb-1" />
+                    <span className="text-sm">Med Library</span>
+                  </div>
+                </Button>
+              </Link>
+
+              <Link to="/contact-doctor">
+                <Button className="w-full h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <div className="text-center">
+                    <MessageSquare className="h-6 w-6 mx-auto mb-1" />
+                    <span className="text-sm">Contact Doctor</span>
+                  </div>
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Today's Medications */}
-          <Card className="bg-gradient-to-br from-white/90 to-blue-50/70 backdrop-blur-xl border-2 border-blue-200/30 shadow-2xl">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                <Calendar className="h-6 w-6 text-blue-600" />
-                Today's Medications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {todaysMeds.length > 0 ? (
-                <div className="space-y-4">
-                  {todaysMeds.slice(0, 5).map((log, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 shadow-lg">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-purple-400 rounded-full flex items-center justify-center">
-                          <Pill className="h-5 w-5 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-800">{log.medications?.name}</h3>
-                          <p className="text-sm text-gray-600">{log.medications?.dosage}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-blue-600">
-                          {new Date(log.scheduled_time).toLocaleTimeString([], { 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
-                        <Badge 
-                          variant={log.status === 'taken' ? 'default' : log.status === 'missed' ? 'destructive' : 'outline'}
-                          className={
-                            log.status === 'taken' 
-                              ? 'bg-green-100 text-green-700 border-green-300'
-                              : log.status === 'missed'
-                              ? 'bg-red-100 text-red-700 border-red-300'
-                              : 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                          }
-                        >
-                          {log.status === 'taken' ? 'Taken' : log.status === 'missed' ? 'Missed' : 'Pending'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                  {todaysMeds.length > 5 && (
-                    <p className="text-sm text-gray-500 text-center">
-                      And {todaysMeds.length - 5} more doses scheduled for today
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <Pill className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500 text-xl font-medium">No medications scheduled for today</p>
-                  <p className="text-gray-400">Add your first medication to get started</p>
-                  <Link to="/add-medication">
-                    <Button className="mt-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600">
-                      Add Medication
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Right Column: Upcoming Medications, Medication Adherence, and Caregiver Management */}
-          <div className="space-y-6">
-            <UpcomingMedications />
-            <MedicationAdherence />
-            <div className="bg-gradient-to-br from-white/90 to-orange-50/70 backdrop-blur-xl border-2 border-orange-200/30 shadow-2xl rounded-lg">
-              <CaregiverManagement />
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );

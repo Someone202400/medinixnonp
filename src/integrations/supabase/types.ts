@@ -133,6 +133,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          caregiver_id: string | null
           channels: Json | null
           created_at: string | null
           id: string
@@ -145,6 +146,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          caregiver_id?: string | null
           channels?: Json | null
           created_at?: string | null
           id?: string
@@ -157,6 +159,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          caregiver_id?: string | null
           channels?: Json | null
           created_at?: string | null
           id?: string
