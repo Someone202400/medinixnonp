@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Bell, Shield, Palette, Phone, Mail, Save, Lock, Eye, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Palette, Mail, Save, Lock, Eye, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,7 +16,6 @@ import CaregiverManagement from '@/components/CaregiverManagement';
 interface NotificationPreferences {
   push: boolean;
   email: boolean;
-  sms: boolean;
 }
 
 const Settings = () => {
@@ -25,12 +24,10 @@ const Settings = () => {
   const [loading, setLoading] = useState(false);
   const [profile, setProfile] = useState({
     full_name: '',
-    phone_number: '',
     email: '',
     notification_preferences: {
       push: true,
-      email: true,
-      sms: true
+      email: true
     } as NotificationPreferences
   });
 
@@ -54,22 +51,19 @@ const Settings = () => {
         // Safely parse notification preferences from Json type
         let preferences: NotificationPreferences = {
           push: true,
-          email: true,
-          sms: true
+          email: true
         };
 
         if (data.notification_preferences && typeof data.notification_preferences === 'object') {
           const prefs = data.notification_preferences as Record<string, any>;
           preferences = {
             push: prefs.push ?? true,
-            email: prefs.email ?? true,
-            sms: prefs.sms ?? true
+            email: prefs.email ?? true
           };
         }
 
         setProfile({
           full_name: data.full_name || '',
-          phone_number: data.phone_number || '',
           email: data.email || user?.email || '',
           notification_preferences: preferences
         });
@@ -85,8 +79,7 @@ const Settings = () => {
       // Convert notification preferences to Json format
       const preferencesJson = {
         push: profile.notification_preferences.push,
-        email: profile.notification_preferences.email,
-        sms: profile.notification_preferences.sms
+        email: profile.notification_preferences.email
       };
 
       const { error } = await supabase
@@ -94,7 +87,6 @@ const Settings = () => {
         .upsert({
           id: user?.id,
           full_name: profile.full_name,
-          phone_number: profile.phone_number,
           email: profile.email,
           notification_preferences: preferencesJson
         });
@@ -208,22 +200,6 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="text-gray-700 font-semibold">Phone Number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-amber-400" />
-                  <Input
-                    id="phone"
-                    value={profile.phone_number}
-                    onChange={(e) => handleInputChange('phone_number', e.target.value)}
-                    className="pl-10 border-2 border-amber-200 focus:border-amber-400 bg-white/80 backdrop-blur-sm"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-                <p className="text-sm text-green-600 font-medium bg-green-50 p-2 rounded-lg">
-                  📱 This number will be used for SMS medication reminders
-                </p>
-              </div>
             </CardContent>
           </Card>
 
@@ -237,22 +213,10 @@ const Settings = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-                  <div>
-                    <h3 className="font-semibold text-green-800">📱 SMS Notifications</h3>
-                    <p className="text-sm text-green-700">Receive medication reminders via text message</p>
-                  </div>
-                  <Switch 
-                    checked={profile.notification_preferences.sms}
-                    onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
-                    className="data-[state=checked]:bg-green-500"
-                  />
-                </div>
-
                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
                   <div>
                     <h3 className="font-semibold text-blue-800">🔔 Push Notifications</h3>
-                    <p className="text-sm text-blue-700">Receive in-app notifications</p>
+                    <p className="text-sm text-blue-700">Receive in-app notifications with sound alerts</p>
                   </div>
                   <Switch 
                     checked={profile.notification_preferences.push}

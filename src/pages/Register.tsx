@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Heart, Eye, EyeOff, Mail, Lock, User, Phone } from "lucide-react";
+import { Heart, Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
@@ -12,7 +13,6 @@ const Register = () => {
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
     password: "",
     confirmPassword: ""
   });
@@ -56,9 +56,7 @@ const Register = () => {
 
     const userData = {
       full_name: `${formData.firstName} ${formData.lastName}`,
-      phone_number: formData.phone, // This will now be saved to the profile
       notification_preferences: {
-        sms: true,
         push: true,
         email: true
       }
@@ -141,27 +139,6 @@ const Register = () => {
                   disabled={isLoading}
                 />
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="text-gray-700 font-semibold">Phone Number</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-3 h-4 w-4 text-amber-400" />
-                <Input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  placeholder="+1 (555) 123-4567"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="pl-10 border-2 border-amber-200 focus:border-amber-400 focus:ring-amber-400 bg-white/80 backdrop-blur-sm"
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-              <p className="text-sm text-green-600 font-medium bg-green-50 p-2 rounded-lg">
-                📱 SMS notifications will be automatically enabled for medication reminders
-              </p>
             </div>
             
             <div className="space-y-2">
