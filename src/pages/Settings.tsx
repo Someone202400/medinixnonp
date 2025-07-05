@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/dataExport';
-import CaregiverManagement from '@/components/CaregiverManagement';
 
 interface NotificationPreferences {
   push: boolean;
@@ -338,9 +337,6 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Caregiver Management */}
-          <CaregiverManagement />
 
           {/* Account Actions */}
           <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
