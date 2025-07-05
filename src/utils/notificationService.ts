@@ -1,144 +1,112 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { addMinutes, isAfter, isBefore } from 'date-fns';
 
-export interface NotificationData {
-  user_id: string;
-  title: string;
-  message: string;
-  type: string;
-  scheduled_for: string;
-  channels: string[];
-  caregiver_id?: string;
-}
+let notificationsEnabled = false;
 
-export const scheduleNotification = async (notificationData: NotificationData) => {
+export const initializeNotifications = async () => {
   try {
-    const { error } = await supabase
-      .from('notifications')
-      .insert([{
-        ...notificationData,
-        channels: JSON.stringify(notificationData.channels)
-      }]);
-
-    if (error) throw error;
-    console.log('Notification scheduled successfully');
+    if ('Notification' in window) {
+      const permission = await Notification.requestPermission();
+      notificationsEnabled = permission === 'granted';
+      console.log('Notifications enabled:', notificationsEnabled);
+    }
   } catch (error) {
-    console.error('Error scheduling notification:', error);
+    console.error('Error initializing notifications:', error);
   }
 };
 
-export const scheduleMedicationReminders = async (userId: string) => {
+export const sendNotification = (title: string, body: string, options: NotificationOptions = {}) => {
+  if (!notificationsEnabled) return;
+  
   try {
-    const now = new Date();
-    const nextDay = new Date(now);
-    nextDay.setDate(nextDay.getDate() + 1);
-    nextDay.setHours(23, 59, 59, 999);
+    const notification = new Notification(title, {
+      body,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      requireInteraction: true,
+      ...options
+    });
 
-    // Get upcoming medications for today and tomorrow
-    const { data: upcomingMeds, error } = await supabase
-      .from('medication_logs')
-      .select(`
-        *,
-        medications (name, dosage)
-      `)
-      .eq('user_id', userId)
-      .eq('status', 'pending')
-      .gte('scheduled_time', now.toISOString())
-      .lte('scheduled_time', nextDay.toISOString());
+    notification.onclick = () => {
+      window.focus();
+      notification.close();
+    };
 
-    if (error) throw error;
+    // Auto close after 10 seconds
+    setTimeout(() => notification.close(), 10000);
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+};
 
-    // Get user profile for notifications
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+export const scheduleNotification = async (
+  userId: string,
+  title: string,
+  message: string,
+  scheduledFor: Date,
+  type: string = 'medication',
+  caregiverId?: string
+) => {
+  try {
+    const notification = {
+      user_id: userId,
+      title,
+      message,
+      type,
+      scheduled_for: scheduledFor.toISOString(),
+      status: 'pending',
+      channels: JSON.stringify(['push', 'email']),
+      ...(caregiverId && { caregiver_id: caregiverId })
+    };
 
-    // Get caregivers for notifications
-    const { data: caregivers } = await supabase
-      .from('caregivers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('notifications_enabled', true);
+    const { error } = await supabase
+      .from('notifications')
+      .insert([notification]);
 
-    for (const med of upcomingMeds || []) {
-      const scheduledTime = new Date(med.scheduled_time);
-      const reminderTime = addMinutes(scheduledTime, -15); // 15 minutes before
-
-      // Schedule user reminder if it's in the future
-      if (isAfter(reminderTime, now)) {
-        await scheduleNotification({
-          user_id: userId,
-          title: '🔔 Medication Reminder',
-          message: `Time to take your ${med.medications?.name} (${med.medications?.dosage}) in 15 minutes!`,
-          type: 'medication_reminder',
-          scheduled_for: reminderTime.toISOString(),
-          channels: ['push', 'email']
-        });
-      }
-
-      // Schedule exact time notification
-      if (isAfter(scheduledTime, now)) {
-        await scheduleNotification({
-          user_id: userId,
-          title: '💊 Time for Medication',
-          message: `It's time to take your ${med.medications?.name} (${med.medications?.dosage})!`,
-          type: 'medication',
-          scheduled_for: scheduledTime.toISOString(),
-          channels: ['push', 'email']
-        });
-
-        // Schedule caregiver notifications
-        if (caregivers && caregivers.length > 0) {
-          const patientName = profile?.full_name || profile?.email || 'Patient';
-          
-          for (const caregiver of caregivers) {
-            await scheduleNotification({
-              user_id: userId,
-              title: '⏰ Medication Time Alert',
-              message: `${patientName} should take their ${med.medications?.name} (${med.medications?.dosage}) now.`,
-              type: 'caregiver_notification',
-              scheduled_for: scheduledTime.toISOString(),
-              channels: ['push', 'email'],
-              caregiver_id: caregiver.id
-            });
-          }
-        }
-      }
+    if (error) {
+      console.error('Error scheduling notification:', error);
+      return false;
     }
 
-    console.log('Medication reminders scheduled successfully');
+    console.log('Notification scheduled successfully');
+    return true;
   } catch (error) {
-    console.error('Error scheduling medication reminders:', error);
+    console.error('Error in scheduleNotification:', error);
+    return false;
   }
 };
 
 export const sendPendingNotifications = async () => {
   try {
     const now = new Date();
-    const twoMinutesAgo = addMinutes(now, -2);
-
-    // Get pending notifications that should be sent
     const { data: pendingNotifications, error } = await supabase
       .from('notifications')
       .select('*')
       .eq('status', 'pending')
-      .lte('scheduled_for', now.toISOString())
-      .gte('scheduled_for', twoMinutesAgo.toISOString());
+      .lte('scheduled_for', now.toISOString());
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching pending notifications:', error);
+      return;
+    }
 
     for (const notification of pendingNotifications || []) {
-      // Send push notification
-      if (notification.channels && JSON.parse(notification.channels).includes('push')) {
-        await sendPushNotification(notification);
-      }
+      // Send browser notification
+      sendNotification(notification.title, notification.message);
+      
+      // Play notification sound
+      playNotificationSound();
 
-      // Send email notification if it includes caregiver
-      if (notification.channels && JSON.parse(notification.channels).includes('email') && notification.caregiver_id) {
-        await sendEmailNotification(notification);
+      // Send email/push via edge function
+      try {
+        await supabase.functions.invoke('send-notifications', {
+          body: { 
+            notifications: [notification],
+            immediate: true 
+          }
+        });
+      } catch (error) {
+        console.error('Error calling send-notifications function:', error);
       }
 
       // Mark as sent
@@ -146,7 +114,7 @@ export const sendPendingNotifications = async () => {
         .from('notifications')
         .update({ 
           status: 'sent', 
-          sent_at: now.toISOString() 
+          sent_at: new Date().toISOString() 
         })
         .eq('id', notification.id);
     }
@@ -155,66 +123,248 @@ export const sendPendingNotifications = async () => {
   }
 };
 
-const sendPushNotification = async (notification: any) => {
+export const scheduleMedicationReminders = async (
+  userId: string,
+  medicationName: string,
+  dosage: string,
+  scheduledTimes: string[],
+  startDate: Date,
+  endDate?: Date
+) => {
   try {
-    // Show browser notification
-    if ('Notification' in window && Notification.permission === 'granted') {
-      const browserNotification = new Notification(notification.title, {
-        body: notification.message,
-        icon: '/favicon.ico',
-        tag: `medication-${notification.id}`,
-        requireInteraction: true
-      });
+    const notifications = [];
+    const currentDate = new Date(startDate);
+    const finalDate = endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
 
-      // Play sound
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjiN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAY7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucK' + '0BAD4AAABMZmFjdAAAAAAAFAAAAA==');
-      audio.volume = 0.3;
-      audio.play().catch(e => console.log('Audio play failed:', e));
-
-      browserNotification.onclick = () => {
-        window.focus();
-        browserNotification.close();
-      };
-
-      // Auto-close after 10 seconds
-      setTimeout(() => {
-        browserNotification.close();
-      }, 10000);
-    }
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-  }
-};
-
-const sendEmailNotification = async (notification: any) => {
-  try {
-    // Get caregiver details
-    const { data: caregiver } = await supabase
+    // Get caregivers for this user
+    const { data: caregivers } = await supabase
       .from('caregivers')
       .select('*')
-      .eq('id', notification.caregiver_id)
-      .single();
+      .eq('user_id', userId)
+      .eq('notifications_enabled', true);
 
-    if (caregiver?.email) {
-      // Send via edge function
-      await supabase.functions.invoke('send-notifications', {
-        body: {
-          notifications: [notification],
-          caregivers: [caregiver]
+    while (currentDate <= finalDate) {
+      for (const timeStr of scheduledTimes) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const reminderTime = new Date(currentDate);
+        reminderTime.setHours(hours, minutes, 0, 0);
+
+        // Skip past dates
+        if (reminderTime <= new Date()) {
+          continue;
         }
-      });
+
+        // Create reminder 15 minutes before medication time
+        const reminderDate = new Date(reminderTime.getTime() - 15 * 60 * 1000);
+        
+        // User reminder
+        notifications.push({
+          user_id: userId,
+          title: '💊 Medication Reminder',
+          message: `Time to take your ${medicationName} (${dosage}) in 15 minutes!`,
+          type: 'medication_reminder',
+          scheduled_for: reminderDate.toISOString(),
+          status: 'pending',
+          channels: JSON.stringify(['push', 'email'])
+        });
+
+        // Medication time notification
+        notifications.push({
+          user_id: userId,
+          title: '🕐 Medication Time',
+          message: `It's time to take your ${medicationName} (${dosage})!`,
+          type: 'medication',
+          scheduled_for: reminderTime.toISOString(),
+          status: 'pending',
+          channels: JSON.stringify(['push', 'email'])
+        });
+
+        // Caregiver notifications
+        if (caregivers && caregivers.length > 0) {
+          for (const caregiver of caregivers) {
+            notifications.push({
+              user_id: userId,
+              title: '👥 Patient Medication Reminder',
+              message: `${caregiver.name} should take ${medicationName} (${dosage}) at ${timeStr}`,
+              type: 'caregiver_notification',
+              scheduled_for: reminderTime.toISOString(),
+              status: 'pending',
+              channels: JSON.stringify(['push', 'email']),
+              caregiver_id: caregiver.id
+            });
+          }
+        }
+      }
+      currentDate.setDate(currentDate.getDate() + 1);
     }
+
+    // Insert all notifications in batches
+    const batchSize = 100;
+    for (let i = 0; i < notifications.length; i += batchSize) {
+      const batch = notifications.slice(i, i + batchSize);
+      const { error } = await supabase
+        .from('notifications')
+        .insert(batch);
+
+      if (error) {
+        console.error('Error inserting notification batch:', error);
+      }
+    }
+
+    console.log(`Scheduled ${notifications.length} medication reminders`);
+    return true;
   } catch (error) {
-    console.error('Error sending email notification:', error);
+    console.error('Error scheduling medication reminders:', error);
+    return false;
   }
 };
 
-// Initialize notification permissions
-export const initializeNotifications = async () => {
-  if ('Notification' in window) {
-    if (Notification.permission === 'default') {
-      const permission = await Notification.requestPermission();
-      console.log('Notification permission:', permission);
+export const notifyMedicationTaken = async (
+  userId: string,
+  medicationName: string,
+  dosage: string,
+  takenAt: Date
+) => {
+  try {
+    // Get user profile and caregivers
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    const { data: caregivers } = await supabase
+      .from('caregivers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('notifications_enabled', true);
+
+    const notifications = [];
+
+    // User confirmation notification
+    notifications.push({
+      user_id: userId,
+      title: '✅ Medication Taken',
+      message: `Great! You've taken your ${medicationName} (${dosage}) at ${takenAt.toLocaleTimeString()}.`,
+      type: 'medication_taken',
+      scheduled_for: new Date().toISOString(),
+      status: 'pending',
+      channels: JSON.stringify(['push'])
+    });
+
+    // Caregiver notifications
+    if (caregivers && caregivers.length > 0) {
+      const patientName = profile?.full_name || profile?.email || 'Patient';
+      
+      for (const caregiver of caregivers) {
+        notifications.push({
+          user_id: userId,
+          title: '✅ Medication Taken',
+          message: `${patientName} has taken their ${medicationName} (${dosage}) at ${takenAt.toLocaleTimeString()}.`,
+          type: 'caregiver_notification',
+          scheduled_for: new Date().toISOString(),
+          status: 'pending',
+          channels: JSON.stringify(['push', 'email']),
+          caregiver_id: caregiver.id
+        });
+      }
     }
+
+    // Insert notifications
+    const { error } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (error) {
+      console.error('Error creating medication taken notifications:', error);
+      return false;
+    }
+
+    // Send immediately
+    await sendPendingNotifications();
+    return true;
+  } catch (error) {
+    console.error('Error in notifyMedicationTaken:', error);
+    return false;
+  }
+};
+
+export const notifyMissedMedication = async (
+  userId: string,
+  medicationName: string,
+  dosage: string,
+  scheduledTime: Date
+) => {
+  try {
+    // Get user profile and caregivers
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    const { data: caregivers } = await supabase
+      .from('caregivers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('notifications_enabled', true);
+
+    const notifications = [];
+
+    // User missed medication alert
+    notifications.push({
+      user_id: userId,
+      title: '⚠️ Missed Medication',
+      message: `You missed your ${medicationName} (${dosage}) scheduled for ${scheduledTime.toLocaleTimeString()}. Please take it when possible.`,
+      type: 'missed_medication',
+      scheduled_for: new Date().toISOString(),
+      status: 'pending',
+      channels: JSON.stringify(['push', 'email'])
+    });
+
+    // Caregiver notifications for missed medications
+    if (caregivers && caregivers.length > 0) {
+      const patientName = profile?.full_name || profile?.email || 'Patient';
+      
+      for (const caregiver of caregivers) {
+        notifications.push({
+          user_id: userId,
+          title: '⚠️ Missed Medication Alert',
+          message: `${patientName} missed their ${medicationName} (${dosage}) scheduled for ${scheduledTime.toLocaleTimeString()}.`,
+          type: 'missed_medication_caregiver',
+          scheduled_for: new Date().toISOString(),
+          status: 'pending',
+          channels: JSON.stringify(['push', 'email']),
+          caregiver_id: caregiver.id
+        });
+      }
+    }
+
+    // Insert notifications
+    const { error } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (error) {
+      console.error('Error creating missed medication notifications:', error);
+      return false;
+    }
+
+    // Send immediately
+    await sendPendingNotifications();
+    return true;
+  } catch (error) {
+    console.error('Error in notifyMissedMedication:', error);
+    return false;
+  }
+};
+
+const playNotificationSound = () => {
+  try {
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBziN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAo7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucKvt1H8xBiWAyeriw2UcBziE2/LNeSsFJHzA7+CZREY6gNf0x4A0CtjrxmUcBziN2/L');
+    audio.volume = 0.3;
+    audio.play().catch(e => console.log('Audio play failed:', e));
+  } catch (error) {
+    console.log('Could not play notification sound:', error);
   }
 };

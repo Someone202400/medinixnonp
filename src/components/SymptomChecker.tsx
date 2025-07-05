@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Clock, Heart, Stethoscope, Brain } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Heart, Stethoscope, Brain, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -63,6 +63,13 @@ const symptomQuestions: SymptomQuestion[] = [
     question: 'Do you have any additional symptoms? (Please describe)',
     type: 'text',
     required: false
+  },
+  {
+    id: 'activity_level',
+    question: 'How has this affected your daily activities?',
+    type: 'multiple-choice',
+    options: ['No impact', 'Minor impact', 'Moderate impact', 'Significant impact', 'Unable to perform activities'],
+    required: false
   }
 ];
 
@@ -109,22 +116,33 @@ const SymptomChecker: React.FC = () => {
       const duration = responses.duration || '';
       const location = responses.location?.toLowerCase() || '';
       const triggers = responses.triggers?.toLowerCase() || '';
+      const activityLevel = responses.activity_level || '';
       
       let possibleConditions = [];
+      let possibleInjuries = [];
       let urgencyLevel = 'low';
       let recommendations = [];
       let confidence = 0.6;
 
-      // Enhanced symptom analysis with more conditions
+      // Enhanced symptom analysis with injury detection
       if (mainSymptom.includes('chest pain') || mainSymptom.includes('heart') || mainSymptom.includes('cardiac')) {
         possibleConditions.push('Cardiac concerns', 'Angina pectoris', 'Costochondritis');
-        urgencyLevel = 'high';
+        if (location.includes('left') || triggers.includes('exercise')) {
+          possibleConditions.push('Myocardial infarction risk');
+          urgencyLevel = 'high';
+        }
+        urgencyLevel = urgencyLevel === 'low' ? 'high' : urgencyLevel;
         recommendations.push('Seek immediate medical attention', 'Call emergency services if severe');
-        confidence = 0.8;
+        confidence = 0.85;
       } else if (mainSymptom.includes('headache') || mainSymptom.includes('head pain')) {
         if (severity === 'Very Severe' || painLevel > 8) {
-          possibleConditions.push('Migraine', 'Cluster headache', 'Secondary headache');
-          urgencyLevel = 'medium';
+          possibleConditions.push('Severe migraine', 'Cluster headache', 'Secondary headache');
+          if (mainSymptom.includes('sudden') || triggers.includes('sudden')) {
+            possibleConditions.push('Subarachnoid hemorrhage risk');
+            urgencyLevel = 'high';
+          } else {
+            urgencyLevel = 'medium';
+          }
           confidence = 0.75;
         } else {
           possibleConditions.push('Tension headache', 'Stress headache', 'Dehydration headache');
@@ -132,9 +150,57 @@ const SymptomChecker: React.FC = () => {
           confidence = 0.7;
         }
         recommendations.push('Rest in quiet, dark room', 'Stay hydrated', 'Consider over-the-counter pain relief');
+      } else if (mainSymptom.includes('back pain') || mainSymptom.includes('spine')) {
+        possibleConditions.push('Muscle strain', 'Herniated disc', 'Sciatica');
+        if (location.includes('lower') && painLevel > 6) {
+          possibleInjuries.push('Lower back muscle strain', 'Lumbar disc injury');
+        }
+        if (triggers.includes('lifting') || triggers.includes('movement')) {
+          possibleInjuries.push('Mechanical back injury', 'Muscle tear');
+        }
+        urgencyLevel = painLevel > 7 ? 'medium' : 'low';
+        recommendations.push('Rest and avoid heavy lifting', 'Apply ice for acute pain', 'Gentle stretching when tolerated');
+        confidence = 0.7;
+      } else if (mainSymptom.includes('knee') || mainSymptom.includes('joint')) {
+        possibleConditions.push('Arthritis', 'Joint inflammation', 'Bursitis');
+        if (triggers.includes('sport') || triggers.includes('running') || triggers.includes('fall')) {
+          possibleInjuries.push('Ligament strain', 'Meniscus tear', 'Patellofemoral injury');
+        }
+        if (mainSymptom.includes('swelling') || triggers.includes('swelling')) {
+          possibleInjuries.push('Acute joint injury', 'Ligament damage');
+          urgencyLevel = 'medium';
+        }
+        recommendations.push('Rest and elevate', 'Apply ice for swelling', 'Avoid weight-bearing if severe');
+        confidence = 0.75;
+      } else if (mainSymptom.includes('ankle') || mainSymptom.includes('foot')) {
+        possibleConditions.push('Sprain', 'Strain', 'Plantar fasciitis');
+        if (triggers.includes('twist') || triggers.includes('fall') || triggers.includes('sport')) {
+          possibleInjuries.push('Ankle sprain', 'Ligament tear', 'Fracture risk');
+          if (painLevel > 7 || activityLevel.includes('Unable')) {
+            urgencyLevel = 'medium';
+            possibleInjuries.push('Severe sprain or fracture');
+          }
+        }
+        recommendations.push('RICE protocol (Rest, Ice, Compression, Elevation)', 'Avoid weight-bearing if severe');
+        confidence = 0.8;
+      } else if (mainSymptom.includes('wrist') || mainSymptom.includes('hand')) {
+        possibleConditions.push('Carpal tunnel syndrome', 'Tendinitis', 'Arthritis');
+        if (triggers.includes('fall') || triggers.includes('impact')) {
+          possibleInjuries.push('Wrist fracture', 'Scaphoid injury', 'Ligament damage');
+          urgencyLevel = 'medium';
+        }
+        recommendations.push('Rest and immobilize', 'Apply ice for acute pain', 'Avoid repetitive motions');
+        confidence = 0.7;
+      } else if (mainSymptom.includes('shoulder')) {
+        possibleConditions.push('Rotator cuff injury', 'Impingement syndrome', 'Bursitis');
+        if (triggers.includes('overhead') || triggers.includes('lifting')) {
+          possibleInjuries.push('Rotator cuff tear', 'Shoulder impingement', 'Muscle strain');
+        }
+        recommendations.push('Rest and avoid overhead activities', 'Apply ice for acute pain', 'Gentle range of motion');
+        confidence = 0.75;
       } else if (mainSymptom.includes('fever') || mainSymptom.includes('high temperature')) {
         possibleConditions.push('Viral infection', 'Bacterial infection', 'Inflammatory condition');
-        if (painLevel > 7) {
+        if (painLevel > 7 || activityLevel.includes('Significant') || activityLevel.includes('Unable')) {
           urgencyLevel = 'medium';
           recommendations.push('Monitor temperature closely', 'Seek medical attention if fever persists');
         } else {
@@ -154,19 +220,15 @@ const SymptomChecker: React.FC = () => {
         confidence = 0.7;
       } else if (mainSymptom.includes('stomach') || mainSymptom.includes('abdominal') || mainSymptom.includes('nausea')) {
         possibleConditions.push('Gastroenteritis', 'Indigestion', 'Food intolerance');
-        if (severity === 'Very Severe') {
-          urgencyLevel = 'medium';
-          recommendations.push('Stay hydrated', 'Seek medical attention if symptoms worsen');
+        if (severity === 'Very Severe' || painLevel > 8) {
+          possibleConditions.push('Appendicitis risk', 'Bowel obstruction risk');
+          urgencyLevel = 'high';
+          recommendations.push('Seek immediate medical attention if severe abdominal pain');
         } else {
           urgencyLevel = 'low';
           recommendations.push('Bland diet', 'Stay hydrated', 'Rest');
         }
         confidence = 0.65;
-      } else if (mainSymptom.includes('joint') || mainSymptom.includes('muscle') || mainSymptom.includes('pain')) {
-        possibleConditions.push('Musculoskeletal strain', 'Arthritis', 'Overuse injury');
-        urgencyLevel = painLevel > 7 ? 'medium' : 'low';
-        recommendations.push('Rest affected area', 'Apply ice or heat', 'Gentle movement when tolerated');
-        confidence = 0.6;
       } else {
         possibleConditions.push('General symptom assessment needed', 'Non-specific symptoms');
         urgencyLevel = painLevel > 8 ? 'high' : 'low';
@@ -184,8 +246,15 @@ const SymptomChecker: React.FC = () => {
         recommendations.push('Consider consultation for persistent symptoms');
       }
 
+      // Activity level impact
+      if (activityLevel.includes('Unable') || activityLevel.includes('Significant')) {
+        urgencyLevel = urgencyLevel === 'low' ? 'medium' : urgencyLevel;
+        recommendations.push('Significant impact on daily life warrants medical evaluation');
+      }
+
       const analysisResult = {
         possibleConditions,
+        possibleInjuries,
         urgencyLevel,
         recommendations: recommendations.concat([
           'This analysis is based on reported symptoms only',
@@ -201,7 +270,15 @@ const SymptomChecker: React.FC = () => {
         .from('symptom_sessions')
         .insert({
           user_id: user?.id,
-          symptoms: { main_symptom: mainSymptom, pain_level: painLevel, severity, duration, location, triggers },
+          symptoms: { 
+            main_symptom: mainSymptom, 
+            pain_level: painLevel, 
+            severity, 
+            duration, 
+            location, 
+            triggers,
+            activity_level: activityLevel
+          },
           responses,
           ai_analysis: analysisResult,
           recommendations: analysisResult.recommendations.join('; ')
@@ -232,7 +309,7 @@ const SymptomChecker: React.FC = () => {
 
   if (analysis) {
     return (
-      <Card className="w-full max-w-2xl mx-auto">
+      <Card className="w-full max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-blue-600" />
@@ -281,6 +358,21 @@ const SymptomChecker: React.FC = () => {
             </div>
           </div>
 
+          {/* Possible Injuries */}
+          {analysis.possibleInjuries && analysis.possibleInjuries.length > 0 && (
+            <div>
+              <Label className="text-base font-semibold">Possible Injuries to Consider:</Label>
+              <div className="mt-2 space-y-2">
+                {analysis.possibleInjuries.map((injury: string, index: number) => (
+                  <div key={index} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
+                    <Activity className="h-4 w-4 text-orange-500" />
+                    <span className="font-medium">{injury}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Recommendations */}
           <div>
             <Label className="text-base font-semibold">Recommendations:</Label>
@@ -317,7 +409,7 @@ const SymptomChecker: React.FC = () => {
           AI Symptom Checker
         </CardTitle>
         <CardDescription>
-          Advanced AI-powered symptom analysis with personalized insights
+          Advanced AI-powered symptom analysis with personalized insights and injury detection
         </CardDescription>
         <div className="flex items-center gap-2 mt-4">
           <Clock className="h-4 w-4" />

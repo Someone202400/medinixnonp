@@ -7,34 +7,7 @@ import { Link } from 'react-router-dom';
 
 const ContactDoctorPage = () => {
   const hospitals = [
-    {
-      name: "Mayo Clinic",
-      phone: "(507) 284-2511",
-      website: "https://www.mayoclinic.org",
-      location: "Rochester, MN",
-      specialty: "Multi-specialty"
-    },
-    {
-      name: "Cleveland Clinic",
-      phone: "(216) 444-2200",
-      website: "https://www.clevelandclinic.org",
-      location: "Cleveland, OH",
-      specialty: "Cardiology & Heart Surgery"
-    },
-    {
-      name: "Johns Hopkins Hospital",
-      phone: "(410) 955-5000",
-      website: "https://www.hopkinsmedicine.org",
-      location: "Baltimore, MD",
-      specialty: "Research & Teaching"
-    },
-    {
-      name: "Massachusetts General Hospital",
-      phone: "(617) 726-2000",
-      website: "https://www.massgeneral.org",
-      location: "Boston, MA",
-      specialty: "Multi-specialty"
-    },
+    // California
     {
       name: "UCLA Medical Center",
       phone: "(310) 825-9111",
@@ -43,11 +16,142 @@ const ContactDoctorPage = () => {
       specialty: "Multi-specialty"
     },
     {
+      name: "Stanford Health Care",
+      phone: "(650) 723-4000",
+      website: "https://stanfordhealthcare.org",
+      location: "Stanford, CA",
+      specialty: "Multi-specialty"
+    },
+    // New York
+    {
       name: "NewYork-Presbyterian Hospital",
       phone: "(212) 746-5454",
       website: "https://www.nyp.org",
       location: "New York, NY",
       specialty: "Multi-specialty"
+    },
+    {
+      name: "Mount Sinai Hospital",
+      phone: "(212) 241-6500",
+      website: "https://www.mountsinai.org",
+      location: "New York, NY",
+      specialty: "Multi-specialty"
+    },
+    // Massachusetts
+    {
+      name: "Massachusetts General Hospital",
+      phone: "(617) 726-2000",
+      website: "https://www.massgeneral.org",
+      location: "Boston, MA",
+      specialty: "Multi-specialty"
+    },
+    {
+      name: "Brigham and Women's Hospital",
+      phone: "(617) 732-5500",
+      website: "https://www.brighamandwomens.org",
+      location: "Boston, MA",
+      specialty: "Multi-specialty"
+    },
+    // Maryland
+    {
+      name: "Johns Hopkins Hospital",
+      phone: "(410) 955-5000",
+      website: "https://www.hopkinsmedicine.org",
+      location: "Baltimore, MD",
+      specialty: "Research & Teaching"
+    },
+    // Ohio
+    {
+      name: "Cleveland Clinic",
+      phone: "(216) 444-2200",
+      website: "https://www.clevelandclinic.org",
+      location: "Cleveland, OH",
+      specialty: "Cardiology & Heart Surgery"
+    },
+    // Minnesota
+    {
+      name: "Mayo Clinic",
+      phone: "(507) 284-2511",
+      website: "https://www.mayoclinic.org",
+      location: "Rochester, MN",
+      specialty: "Multi-specialty"
+    },
+    // Texas
+    {
+      name: "Houston Methodist Hospital",
+      phone: "(713) 790-3311",
+      website: "https://www.houstonmethodist.org",
+      location: "Houston, TX",
+      specialty: "Multi-specialty"
+    },
+    {
+      name: "UT Southwestern Medical Center",
+      phone: "(214) 633-4000",
+      website: "https://www.utsouthwestern.edu",
+      location: "Dallas, TX",
+      specialty: "Academic Medical Center"
+    },
+    // Florida
+    {
+      name: "Mayo Clinic Florida",
+      phone: "(904) 953-2000",
+      website: "https://www.mayoclinic.org/locations/florida",
+      location: "Jacksonville, FL",
+      specialty: "Multi-specialty"
+    },
+    {
+      name: "Jackson Memorial Hospital",
+      phone: "(305) 585-1111",
+      website: "https://www.jacksonhealth.org",
+      location: "Miami, FL",
+      specialty: "Academic Medical Center"
+    },
+    // Illinois
+    {
+      name: "Northwestern Memorial Hospital",
+      phone: "(312) 926-2000",
+      website: "https://www.nm.org",
+      location: "Chicago, IL",
+      specialty: "Multi-specialty"
+    },
+    // Washington
+    {
+      name: "Seattle Children's Hospital",
+      phone: "(206) 987-2000",
+      website: "https://www.seattlechildrens.org",
+      location: "Seattle, WA",
+      specialty: "Pediatrics"
+    },
+    {
+      name: "University of Washington Medical Center",
+      phone: "(206) 598-3300",
+      website: "https://www.uwmedicine.org",
+      location: "Seattle, WA",
+      specialty: "Academic Medical Center"
+    },
+    // Colorado
+    {
+      name: "National Jewish Health",
+      phone: "(303) 388-4461",
+      website: "https://www.nationaljewish.org",
+      location: "Denver, CO",
+      specialty: "Respiratory Medicine"
+    },
+    // Georgia
+    {
+      name: "Emory University Hospital",
+      phone: "(404) 712-2000",
+      website: "https://www.emoryhealthcare.org",
+      location: "Atlanta, GA",
+      specialty: "Academic Medical Center"
+    },
+    // Pennsylvania
+    {
+      name: "Hospital of the University of Pennsylvania",
+      phone: "(215) 662-4000",
+      website: "https://www.pennmedicine.org",
+      location: "Philadelphia, PA",
+      specialty: "Academic Medical Center"
     }
   ];
 
@@ -151,7 +255,7 @@ const ContactDoctorPage = () => {
               <MapPin className="h-6 w-6 text-blue-600" />
               Major Hospitals & Medical Centers
             </CardTitle>
-            <p className="text-gray-700 font-medium">Contact information for renowned healthcare institutions</p>
+            <p className="text-gray-700 font-medium">Contact information for renowned healthcare institutions across the United States</p>
           </CardHeader>
           <CardContent className="p-8">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

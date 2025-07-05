@@ -110,7 +110,7 @@ const Dashboard = () => {
 
       // Get this week's logs for adherence calculation
       const { data: weekLogs } = await supabase
-        .from('medication_logs')
+        .from('medications_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('scheduled_time', weekStart.toISOString())
@@ -259,6 +259,55 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Quick Actions - Moved above Today's Medications */}
+          <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl mb-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                <Activity className="h-6 w-6 text-indigo-600" />
+                Quick Actions
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link to="/add-medication">
+                  <Button className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="text-center">
+                      <Plus className="h-6 w-6 mx-auto mb-1" />
+                      <span className="text-sm">Add Medication</span>
+                    </div>
+                  </Button>
+                </Link>
+
+                <Link to="/symptom-checker">
+                  <Button className="w-full h-20 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="text-center">
+                      <Stethoscope className="h-6 w-6 mx-auto mb-1" />
+                      <span className="text-sm">Symptom Checker</span>
+                    </div>
+                  </Button>
+                </Link>
+
+                <Link to="/medication-library">
+                  <Button className="w-full h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="text-center">
+                      <Library className="h-6 w-6 mx-auto mb-1" />
+                      <span className="text-sm">Med Library</span>
+                    </div>
+                  </Button>
+                </Link>
+
+                <Link to="/contact-doctor">
+                  <Button className="w-full h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
+                    <div className="text-center">
+                      <MessageSquare className="h-6 w-6 mx-auto mb-1" />
+                      <span className="text-sm">Contact Doctor</span>
+                    </div>
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Main Content Grid */}
@@ -274,55 +323,6 @@ const Dashboard = () => {
         <div className="mb-8">
           <MedicationAdherence refreshTrigger={refreshTrigger} />
         </div>
-
-        {/* Quick Actions */}
-        <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              <Activity className="h-6 w-6 text-indigo-600" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link to="/add-medication">
-                <Button className="w-full h-20 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <div className="text-center">
-                    <Plus className="h-6 w-6 mx-auto mb-1" />
-                    <span className="text-sm">Add Medication</span>
-                  </div>
-                </Button>
-              </Link>
-
-              <Link to="/symptom-checker">
-                <Button className="w-full h-20 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <div className="text-center">
-                    <Stethoscope className="h-6 w-6 mx-auto mb-1" />
-                    <span className="text-sm">Symptom Checker</span>
-                  </div>
-                </Button>
-              </Link>
-
-              <Link to="/medication-library">
-                <Button className="w-full h-20 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <div className="text-center">
-                    <Library className="h-6 w-6 mx-auto mb-1" />
-                    <span className="text-sm">Med Library</span>
-                  </div>
-                </Button>
-              </Link>
-
-              <Link to="/contact-doctor">
-                <Button className="w-full h-20 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold shadow-lg transform hover:scale-105 transition-all duration-300">
-                  <div className="text-center">
-                    <MessageSquare className="h-6 w-6 mx-auto mb-1" />
-                    <span className="text-sm">Contact Doctor</span>
-                  </div>
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
