@@ -149,8 +149,16 @@ export const generateDailyMedicationSchedule = async (userId: string, targetDate
 
       console.log(`Successfully generated ${scheduleEntries.length} medication schedule entries`);
       
-      // Schedule notifications for the new entries
-      await scheduleMedicationReminders(userId);
+      // Schedule notifications for each medication - Fixed function call
+      for (const entry of scheduleEntries) {
+        await scheduleMedicationReminders(
+          userId,
+          entry.medication_name,
+          entry.dosage,
+          [new Date(entry.scheduled_time).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })],
+          new Date(entry.scheduled_time)
+        );
+      }
     } else {
       console.log('No new medication schedule entries needed');
     }

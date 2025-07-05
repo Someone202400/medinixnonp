@@ -108,9 +108,9 @@ const Dashboard = () => {
         .lt('scheduled_time', tomorrow.toISOString())
         .neq('status', 'archived');
 
-      // Get this week's logs for adherence calculation
+      // Get this week's logs for adherence calculation - Fixed table name
       const { data: weekLogs } = await supabase
-        .from('medications_logs')
+        .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('scheduled_time', weekStart.toISOString())
@@ -260,7 +260,7 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          {/* Quick Actions - Moved above Today's Medications */}
+          {/* Quick Actions - Above Today's Medications */}
           <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl mb-8">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
