@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
@@ -26,7 +25,12 @@ import {
   Bell,
   TestTube,
   RefreshCw,
-  Activity
+  Activity,
+  Stethoscope,
+  Search,
+  BookOpen,
+  Users,
+  MessageCircle
 } from 'lucide-react';
 
 const Dashboard = () => {
@@ -280,6 +284,51 @@ const Dashboard = () => {
 
           <TabsContent value="medications" className="space-y-6">
             <TodaysMedications onMedicationTaken={handleMedicationTaken} />
+            
+            {/* Quick Actions Section */}
+            <Card className="bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <MessageCircle className="h-6 w-6 text-purple-600" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Link to="/contact-doctor">
+                    <Button className="w-full bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                      <Stethoscope className="h-6 w-6" />
+                      <span className="text-sm font-medium">Contact Doctor</span>
+                    </Button>
+                  </Link>
+
+                  <Link to="/symptom-checker">
+                    <Button className="w-full bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                      <Search className="h-6 w-6" />
+                      <span className="text-sm font-medium">Symptom Checker</span>
+                    </Button>
+                  </Link>
+
+                  <Link to="/medication-library">
+                    <Button className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                      <BookOpen className="h-6 w-6" />
+                      <span className="text-sm font-medium">Medication Library</span>
+                    </Button>
+                  </Link>
+
+                  <Button 
+                    onClick={() => {
+                      const caregiverTab = document.querySelector('[value="caregivers"]') as HTMLElement;
+                      caregiverTab?.click();
+                    }}
+                    className="w-full bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300"
+                  >
+                    <Users className="h-6 w-6" />
+                    <span className="text-sm font-medium">Manage Caregivers</span>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="upcoming" className="space-y-6">
