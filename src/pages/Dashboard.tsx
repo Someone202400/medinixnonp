@@ -44,6 +44,7 @@ const Dashboard = () => {
     missedThisWeek: 0
   });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('medications');
 
   useEffect(() => {
     if (user) {
@@ -257,8 +258,106 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Quick Actions Section */}
+        <Card className="mb-8 bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <MessageCircle className="h-6 w-6 text-purple-600" />
+              Quick Actions
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Main Navigation Actions */}
+              <Button 
+                onClick={() => setActiveTab('medications')}
+                className={`w-full h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ${
+                  activeTab === 'medications' 
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-800 text-white' 
+                    : 'bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white'
+                }`}
+              >
+                <Pill className="h-6 w-6" />
+                <span className="text-sm font-medium">Today's Medications</span>
+              </Button>
+
+              <Button 
+                onClick={() => setActiveTab('upcoming')}
+                className={`w-full h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ${
+                  activeTab === 'upcoming' 
+                    ? 'bg-gradient-to-r from-green-600 to-green-800 text-white' 
+                    : 'bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white'
+                }`}
+              >
+                <Calendar className="h-6 w-6" />
+                <span className="text-sm font-medium">Upcoming</span>
+              </Button>
+
+              <Button 
+                onClick={() => setActiveTab('adherence')}
+                className={`w-full h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ${
+                  activeTab === 'adherence' 
+                    ? 'bg-gradient-to-r from-orange-600 to-orange-800 text-white' 
+                    : 'bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white'
+                }`}
+              >
+                <TrendingUp className="h-6 w-6" />
+                <span className="text-sm font-medium">Adherence</span>
+              </Button>
+
+              <Button 
+                onClick={() => setActiveTab('caregivers')}
+                className={`w-full h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ${
+                  activeTab === 'caregivers' 
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white' 
+                    : 'bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white'
+                }`}
+              >
+                <Users className="h-6 w-6" />
+                <span className="text-sm font-medium">Manage Caregivers</span>
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Additional Actions */}
+              <Link to="/contact-doctor">
+                <Button className="w-full bg-gradient-to-r from-cyan-400 to-cyan-600 hover:from-cyan-500 hover:to-cyan-700 text-white h-16 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <Stethoscope className="h-5 w-5" />
+                  <span className="text-xs font-medium">Contact Doctor</span>
+                </Button>
+              </Link>
+
+              <Link to="/symptom-checker">
+                <Button className="w-full bg-gradient-to-r from-teal-400 to-teal-600 hover:from-teal-500 hover:to-teal-700 text-white h-16 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <Search className="h-5 w-5" />
+                  <span className="text-xs font-medium">Symptom Checker</span>
+                </Button>
+              </Link>
+
+              <Link to="/medication-library">
+                <Button className="w-full bg-gradient-to-r from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-white h-16 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
+                  <BookOpen className="h-5 w-5" />
+                  <span className="text-xs font-medium">Medication Library</span>
+                </Button>
+              </Link>
+
+              <Button 
+                onClick={() => setActiveTab('system')}
+                className={`w-full h-16 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300 ${
+                  activeTab === 'system' 
+                    ? 'bg-gradient-to-r from-gray-600 to-gray-800 text-white' 
+                    : 'bg-gradient-to-r from-gray-400 to-gray-600 hover:from-gray-500 hover:to-gray-700 text-white'
+                }`}
+              >
+                <TestTube className="h-5 w-5" />
+                <span className="text-xs font-medium">System Test</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Main Content Tabs */}
-        <Tabs defaultValue="medications" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-white/80 backdrop-blur-sm">
             <TabsTrigger value="medications" className="flex items-center gap-2">
               <Pill className="h-4 w-4" />
@@ -284,51 +383,6 @@ const Dashboard = () => {
 
           <TabsContent value="medications" className="space-y-6">
             <TodaysMedications onMedicationTaken={handleMedicationTaken} />
-            
-            {/* Quick Actions Section */}
-            <Card className="bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  <MessageCircle className="h-6 w-6 text-purple-600" />
-                  Quick Actions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <Link to="/contact-doctor">
-                    <Button className="w-full bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
-                      <Stethoscope className="h-6 w-6" />
-                      <span className="text-sm font-medium">Contact Doctor</span>
-                    </Button>
-                  </Link>
-
-                  <Link to="/symptom-checker">
-                    <Button className="w-full bg-gradient-to-r from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
-                      <Search className="h-6 w-6" />
-                      <span className="text-sm font-medium">Symptom Checker</span>
-                    </Button>
-                  </Link>
-
-                  <Link to="/medication-library">
-                    <Button className="w-full bg-gradient-to-r from-orange-400 to-orange-600 hover:from-orange-500 hover:to-orange-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300">
-                      <BookOpen className="h-6 w-6" />
-                      <span className="text-sm font-medium">Medication Library</span>
-                    </Button>
-                  </Link>
-
-                  <Button 
-                    onClick={() => {
-                      const caregiverTab = document.querySelector('[value="caregivers"]') as HTMLElement;
-                      caregiverTab?.click();
-                    }}
-                    className="w-full bg-gradient-to-r from-purple-400 to-purple-600 hover:from-purple-500 hover:to-purple-700 text-white h-20 flex flex-col items-center justify-center gap-2 shadow-lg transform hover:scale-105 transition-all duration-300"
-                  >
-                    <Users className="h-6 w-6" />
-                    <span className="text-sm font-medium">Manage Caregivers</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           <TabsContent value="upcoming" className="space-y-6">
