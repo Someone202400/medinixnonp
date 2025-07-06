@@ -350,10 +350,14 @@ export const scheduleMedicationReminders = async (userId: string) => {
       const reminderTime = addMinutes(scheduledTime, -15); // Remind 15 minutes before
 
       if (isAfter(reminderTime, now)) {
+        // Fix: Convert JSON values to strings safely
+        const medicationName = typeof log.medications?.name === 'string' ? log.medications.name : String(log.medications?.name || 'medication');
+        const medicationDosage = typeof log.medications?.dosage === 'string' ? log.medications.dosage : String(log.medications?.dosage || '');
+        
         const notification = {
           user_id: userId,
           title: 'Medication Reminder',
-          message: `Don't forget to take your ${log.medications?.name} (${log.medications?.dosage}) in 15 minutes at ${scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+          message: `Don't forget to take your ${medicationName} (${medicationDosage}) in 15 minutes at ${scheduledTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
           type: 'medication_reminder',
           scheduled_for: reminderTime.toISOString(),
           channels: JSON.stringify(['push'])

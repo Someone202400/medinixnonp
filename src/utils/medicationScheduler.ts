@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { addDays, format, startOfDay, endOfDay, parseISO } from 'date-fns';
 import { scheduleMedicationReminders } from './notificationService';
@@ -149,16 +148,8 @@ export const generateDailyMedicationSchedule = async (userId: string, targetDate
 
       console.log(`Successfully generated ${scheduleEntries.length} medication schedule entries`);
       
-      // Schedule notifications for each medication using the fixed function
-      for (const entry of scheduleEntries) {
-        await scheduleMedicationReminders(
-          userId,
-          entry.medication_name,
-          entry.dosage,
-          [new Date(entry.scheduled_time).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })],
-          new Date(entry.scheduled_time)
-        );
-      }
+      // Schedule notifications for upcoming medications - fix the function call
+      await scheduleMedicationReminders(userId);
     } else {
       console.log('No new medication schedule entries needed');
     }
