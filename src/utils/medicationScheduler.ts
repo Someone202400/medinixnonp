@@ -149,7 +149,7 @@ export const generateDailyMedicationSchedule = async (userId: string, targetDate
 
       console.log(`Successfully generated ${scheduleEntries.length} medication schedule entries`);
       
-      // Schedule notifications for each medication - Fixed function call
+      // Schedule notifications for each medication using the fixed function
       for (const entry of scheduleEntries) {
         await scheduleMedicationReminders(
           userId,

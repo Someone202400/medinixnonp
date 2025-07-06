@@ -68,7 +68,7 @@ export const scheduleNotification = async (
       return false;
     }
 
-    console.log('Notification scheduled successfully');
+    console.log('Notification scheduled successfully for:', scheduledFor);
     return true;
   } catch (error) {
     console.error('Error in scheduleNotification:', error);
@@ -90,6 +90,8 @@ export const sendPendingNotifications = async () => {
       return;
     }
 
+    console.log(`Found ${pendingNotifications?.length || 0} pending notifications to send`);
+
     for (const notification of pendingNotifications || []) {
       // Send browser notification
       sendNotification(notification.title, notification.message);
@@ -97,16 +99,18 @@ export const sendPendingNotifications = async () => {
       // Play notification sound
       playNotificationSound();
 
-      // Send email/push via edge function
-      try {
-        await supabase.functions.invoke('send-notifications', {
-          body: { 
-            notifications: [notification],
-            immediate: true 
-          }
-        });
-      } catch (error) {
-        console.error('Error calling send-notifications function:', error);
+      // Send email/push via edge function if it's a caregiver notification
+      if (notification.caregiver_id) {
+        try {
+          await supabase.functions.invoke('send-notifications', {
+            body: { 
+              notifications: [notification],
+              immediate: true 
+            }
+          });
+        } catch (error) {
+          console.error('Error calling send-notifications function:', error);
+        }
       }
 
       // Mark as sent
@@ -123,19 +127,46 @@ export const sendPendingNotifications = async () => {
   }
 };
 
+export const cleanupOldNotifications = async (userId: string) => {
+  try {
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+
+    // Delete old notifications from future years (bug cleanup)
+    const futureDate = new Date();
+    futureDate.setFullYear(futureDate.getFullYear() + 1);
+
+    const { error } = await supabase
+      .from('notifications')
+      .delete()
+      .eq('user_id', userId)
+      .or(`scheduled_for.lt.${oneDayAgo.toISOString()},scheduled_for.gt.${futureDate.toISOString()}`);
+
+    if (error) {
+      console.error('Error cleaning up old notifications:', error);
+    } else {
+      console.log('Successfully cleaned up old/future notifications');
+    }
+  } catch (error) {
+    console.error('Error in cleanupOldNotifications:', error);
+  }
+};
+
 export const scheduleMedicationReminders = async (
   userId: string,
   medicationName: string,
   dosage: string,
   scheduledTimes: string[],
-  startDate: Date,
-  endDate?: Date
+  targetDate: Date
 ) => {
   try {
-    const notifications = [];
-    const currentDate = new Date(startDate);
-    const finalDate = endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+    console.log('Scheduling medication reminders for:', medicationName, 'on', targetDate);
+    
+    // Clean up old notifications first
+    await cleanupOldNotifications(userId);
 
+    const notifications = [];
+    
     // Get caregivers for this user
     const { data: caregivers } = await supabase
       .from('caregivers')
@@ -143,75 +174,74 @@ export const scheduleMedicationReminders = async (
       .eq('user_id', userId)
       .eq('notifications_enabled', true);
 
-    while (currentDate <= finalDate) {
-      for (const timeStr of scheduledTimes) {
-        const [hours, minutes] = timeStr.split(':').map(Number);
-        const reminderTime = new Date(currentDate);
-        reminderTime.setHours(hours, minutes, 0, 0);
+    for (const timeStr of scheduledTimes) {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const medicationTime = new Date(targetDate);
+      medicationTime.setHours(hours, minutes, 0, 0);
 
-        // Skip past dates
-        if (reminderTime <= new Date()) {
-          continue;
-        }
+      // Skip past times
+      if (medicationTime <= new Date()) {
+        continue;
+      }
 
-        // Create reminder 15 minutes before medication time
-        const reminderDate = new Date(reminderTime.getTime() - 15 * 60 * 1000);
-        
-        // User reminder
+      // Create reminder 15 minutes before medication time
+      const reminderTime = new Date(medicationTime.getTime() - 15 * 60 * 1000);
+      
+      // Only schedule if reminder time is in the future
+      if (reminderTime > new Date()) {
         notifications.push({
           user_id: userId,
           title: '💊 Medication Reminder',
           message: `Time to take your ${medicationName} (${dosage}) in 15 minutes!`,
           type: 'medication_reminder',
-          scheduled_for: reminderDate.toISOString(),
-          status: 'pending',
-          channels: JSON.stringify(['push', 'email'])
-        });
-
-        // Medication time notification
-        notifications.push({
-          user_id: userId,
-          title: '🕐 Medication Time',
-          message: `It's time to take your ${medicationName} (${dosage})!`,
-          type: 'medication',
           scheduled_for: reminderTime.toISOString(),
           status: 'pending',
-          channels: JSON.stringify(['push', 'email'])
+          channels: JSON.stringify(['push'])
         });
+      }
 
-        // Caregiver notifications
-        if (caregivers && caregivers.length > 0) {
-          for (const caregiver of caregivers) {
-            notifications.push({
-              user_id: userId,
-              title: '👥 Patient Medication Reminder',
-              message: `${caregiver.name} should take ${medicationName} (${dosage}) at ${timeStr}`,
-              type: 'caregiver_notification',
-              scheduled_for: reminderTime.toISOString(),
-              status: 'pending',
-              channels: JSON.stringify(['push', 'email']),
-              caregiver_id: caregiver.id
-            });
-          }
+      // Medication time notification
+      notifications.push({
+        user_id: userId,
+        title: '🕐 Medication Time',
+        message: `It's time to take your ${medicationName} (${dosage})!`,
+        type: 'medication',
+        scheduled_for: medicationTime.toISOString(),
+        status: 'pending',
+        channels: JSON.stringify(['push'])
+      });
+
+      // Caregiver notifications
+      if (caregivers && caregivers.length > 0) {
+        for (const caregiver of caregivers) {
+          notifications.push({
+            user_id: userId,
+            title: '👥 Patient Medication Time',
+            message: `Patient should take ${medicationName} (${dosage}) at ${timeStr}`,
+            type: 'caregiver_notification',
+            scheduled_for: medicationTime.toISOString(),
+            status: 'pending',
+            channels: JSON.stringify(['push', 'email']),
+            caregiver_id: caregiver.id
+          });
         }
       }
-      currentDate.setDate(currentDate.getDate() + 1);
     }
 
-    // Insert all notifications in batches
-    const batchSize = 100;
-    for (let i = 0; i < notifications.length; i += batchSize) {
-      const batch = notifications.slice(i, i + batchSize);
+    // Insert notifications in batches
+    if (notifications.length > 0) {
       const { error } = await supabase
         .from('notifications')
-        .insert(batch);
+        .insert(notifications);
 
       if (error) {
-        console.error('Error inserting notification batch:', error);
+        console.error('Error inserting notifications:', error);
+        return false;
       }
+
+      console.log(`Successfully scheduled ${notifications.length} medication reminders for ${medicationName}`);
     }
 
-    console.log(`Scheduled ${notifications.length} medication reminders`);
     return true;
   } catch (error) {
     console.error('Error scheduling medication reminders:', error);
@@ -358,6 +388,15 @@ export const notifyMissedMedication = async (
     return false;
   }
 };
+
+// Start notification processing when service loads
+if (typeof window !== 'undefined') {
+  // Process pending notifications every 30 seconds
+  setInterval(sendPendingNotifications, 30000);
+  
+  // Initialize notifications on load
+  initializeNotifications();
+}
 
 const playNotificationSound = () => {
   try {
