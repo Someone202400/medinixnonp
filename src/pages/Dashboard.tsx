@@ -7,7 +7,6 @@ import SystemTest from '@/components/SystemTest';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -356,51 +355,28 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 bg-white/80 backdrop-blur-sm">
-            <TabsTrigger value="medications" className="flex items-center gap-2">
-              <Pill className="h-4 w-4" />
-              Medications
-            </TabsTrigger>
-            <TabsTrigger value="upcoming" className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              Upcoming
-            </TabsTrigger>
-            <TabsTrigger value="adherence" className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Adherence
-            </TabsTrigger>
-            <TabsTrigger value="caregivers" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Caregivers
-            </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
-              <TestTube className="h-4 w-4" />
-              System Test
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="medications" className="space-y-6">
+        {/* Main Content */}
+        <div className="space-y-6">
+          {activeTab === 'medications' && (
             <TodaysMedications onMedicationTaken={handleMedicationTaken} />
-          </TabsContent>
+          )}
 
-          <TabsContent value="upcoming" className="space-y-6">
+          {activeTab === 'upcoming' && (
             <UpcomingMedications refreshTrigger={refreshTrigger} />
-          </TabsContent>
+          )}
 
-          <TabsContent value="adherence" className="space-y-6">
-            <MedicationAdherence />
-          </TabsContent>
+          {activeTab === 'adherence' && (
+            <MedicationAdherence refreshTrigger={refreshTrigger} />
+          )}
 
-          <TabsContent value="caregivers" className="space-y-6">
+          {activeTab === 'caregivers' && (
             <CaregiverManagement />
-          </TabsContent>
+          )}
 
-          <TabsContent value="system" className="space-y-6">
+          {activeTab === 'system' && (
             <SystemTest />
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   );

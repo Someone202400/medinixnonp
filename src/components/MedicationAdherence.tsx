@@ -5,8 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, Minus, Calendar, Target, Award } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, startOfWeek, endOfWeek, subWeeks, startOfDay, endOfDay } from 'date-fns';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { format, startOfWeek, endOfWeek, subWeeks, startOfDay, endOfDay, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 interface AdherenceData {
   date: string;
@@ -22,10 +22,12 @@ interface MedicationAdherenceProps {
 const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
   const { user } = useAuth();
   const [weeklyData, setWeeklyData] = useState<AdherenceData[]>([]);
+  const [yearlyData, setYearlyData] = useState<AdherenceData[]>([]);
   const [overallStats, setOverallStats] = useState({
+    todayPercentage: 0,
     currentWeekPercentage: 0,
     lastWeekPercentage: 0,
-    monthlyAverage: 0,
+    yearlyAverage: 0,
     totalTaken: 0,
     totalScheduled: 0,
     streak: 0
@@ -48,20 +50,21 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
       const lastWeekStart = startOfWeek(subWeeks(today, 1));
       const lastWeekEnd = endOfWeek(subWeeks(today, 1));
       const fourWeeksAgo = subWeeks(currentWeekStart, 3);
+      const twelveMonthsAgo = subMonths(today, 12);
 
-      // Get logs for the last 4 weeks
+      // Get logs for the last 12 months
       const { data: logs, error } = await supabase
         .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
-        .gte('scheduled_time', fourWeeksAgo.toISOString())
-        .lte('scheduled_time', currentWeekEnd.toISOString())
+        .gte('scheduled_time', twelveMonthsAgo.toISOString())
+        .lte('scheduled_time', today.toISOString())
         .neq('status', 'archived')
         .order('scheduled_time', { ascending: true });
 
       if (error) throw error;
 
-      // Process weekly data
+      // Process weekly data (last 4 weeks)
       const weeklyStats: AdherenceData[] = [];
       for (let i = 0; i < 4; i++) {
         const weekStart = subWeeks(currentWeekStart, 3 - i);
@@ -86,7 +89,46 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
       setWeeklyData(weeklyStats);
 
-      // Calculate overall stats
+      // Process yearly data (last 12 months)
+      const yearlyStats: AdherenceData[] = [];
+      for (let i = 0; i < 12; i++) {
+        const monthStart = startOfMonth(subMonths(today, 11 - i));
+        const monthEnd = endOfMonth(monthStart);
+        
+        const monthLogs = logs?.filter(log => {
+          const logDate = new Date(log.scheduled_time);
+          return logDate >= monthStart && logDate <= monthEnd;
+        }) || [];
+
+        if (monthLogs.length > 0) {
+          const taken = monthLogs.filter(log => log.status === 'taken').length;
+          const total = monthLogs.length;
+          const percentage = total > 0 ? Math.round((taken / total) * 100) : 0;
+
+          yearlyStats.push({
+            date: format(monthStart, 'MMM'),
+            taken,
+            total,
+            percentage
+          });
+        }
+      }
+
+      setYearlyData(yearlyStats);
+
+      // Calculate today's adherence
+      const todayStart = startOfDay(today);
+      const todayEnd = endOfDay(today);
+      const todayLogs = logs?.filter(log => {
+        const logDate = new Date(log.scheduled_time);
+        return logDate >= todayStart && logDate <= todayEnd;
+      }) || [];
+
+      const todayTaken = todayLogs.filter(log => log.status === 'taken').length;
+      const todayTotal = todayLogs.length;
+      const todayPercentage = todayTotal > 0 ? Math.round((todayTaken / todayTotal) * 100) : 0;
+
+      // Calculate weekly adherence
       const currentWeekLogs = logs?.filter(log => {
         const logDate = new Date(log.scheduled_time);
         return logDate >= currentWeekStart && logDate <= currentWeekEnd;
@@ -107,7 +149,7 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
       const totalTaken = logs?.filter(log => log.status === 'taken').length || 0;
       const totalScheduled = logs?.length || 0;
-      const monthlyAverage = weeklyStats.length > 0 ? Math.round(weeklyStats.reduce((sum, week) => sum + week.percentage, 0) / weeklyStats.length) : 0;
+      const yearlyAverage = yearlyStats.length > 0 ? Math.round(yearlyStats.reduce((sum, month) => sum + month.percentage, 0) / yearlyStats.length) : 0;
 
       // Calculate streak (consecutive days with 100% adherence)
       let streak = 0;
@@ -136,9 +178,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
       }
 
       setOverallStats({
+        todayPercentage,
         currentWeekPercentage,
         lastWeekPercentage,
-        monthlyAverage,
+        yearlyAverage,
         totalTaken,
         totalScheduled,
         streak
@@ -205,56 +248,56 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Stats Overview */}
-          <div className="space-y-4">
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-blue-700 font-medium">This Week</span>
-                {getTrendIcon()}
-              </div>
-              <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.currentWeekPercentage)}`}>
-                {overallStats.currentWeekPercentage}%
-              </div>
-              <div className={`text-sm ${getTrendColor()}`}>
-                {overallStats.currentWeekPercentage > overallStats.lastWeekPercentage ? '+' : ''}
-                {overallStats.currentWeekPercentage - overallStats.lastWeekPercentage}% from last week
-              </div>
+        {/* Top Row Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-green-700 font-medium">Today's Adherence</span>
+              <Calendar className="h-4 w-4 text-green-600" />
             </div>
-
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border-2 border-green-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-green-700 font-medium">Monthly Average</span>
-                <Calendar className="h-4 w-4 text-green-600" />
-              </div>
-              <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.monthlyAverage)}`}>
-                {overallStats.monthlyAverage}%
-              </div>
-              <div className="text-sm text-green-600">
-                {overallStats.totalTaken}/{overallStats.totalScheduled} doses taken
-              </div>
+            <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.todayPercentage)}`}>
+              {overallStats.todayPercentage}%
             </div>
-
-            <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-purple-700 font-medium">Current Streak</span>
-                <Award className="h-4 w-4 text-purple-600" />
-              </div>
-              <div className="text-3xl font-bold text-purple-600 mb-1">
-                {overallStats.streak}
-              </div>
-              <div className="text-sm text-purple-600">
-                {overallStats.streak === 1 ? 'day' : 'days'} of perfect adherence
-              </div>
+            <div className="text-sm text-green-600">
+              Current day progress
             </div>
           </div>
 
-          {/* Weekly Trend Chart */}
-          <div className="lg:col-span-2">
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-blue-700 font-medium">Weekly Adherence</span>
+              {getTrendIcon()}
+            </div>
+            <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.currentWeekPercentage)}`}>
+              {overallStats.currentWeekPercentage}%
+            </div>
+            <div className={`text-sm ${getTrendColor()}`}>
+              {overallStats.currentWeekPercentage > overallStats.lastWeekPercentage ? '+' : ''}
+              {overallStats.currentWeekPercentage - overallStats.lastWeekPercentage}% from last week
+            </div>
+          </div>
+
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-purple-700 font-medium">Yearly Average</span>
+              <Award className="h-4 w-4 text-purple-600" />
+            </div>
+            <div className={`text-3xl font-bold mb-1 ${getAdherenceColor(overallStats.yearlyAverage)}`}>
+              {overallStats.yearlyAverage}%
+            </div>
+            <div className="text-sm text-purple-600">
+              Based on available data
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Weekly Trend Line Chart */}
+          <div>
             <h3 className="font-semibold text-indigo-800 mb-4">4-Week Adherence Trend</h3>
             <div className="h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyData}>
+                <LineChart data={weeklyData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
                   <XAxis 
                     dataKey="date" 
@@ -272,60 +315,108 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
                       border: '2px solid #6366f1',
                       borderRadius: '8px'
                     }}
-                    formatter={(value: number, name: string) => [
-                      name === 'percentage' ? `${value}%` : value,
-                      name === 'percentage' ? 'Adherence' : name === 'taken' ? 'Taken' : 'Total'
-                    ]}
+                    formatter={(value: number) => [`${value}%`, 'Adherence']}
                   />
-                  <Bar 
+                  <Line 
+                    type="monotone"
                     dataKey="percentage" 
-                    fill="url(#colorGradient)"
-                    radius={[4, 4, 0, 0]}
+                    stroke="#6366f1"
+                    strokeWidth={3}
+                    dot={{ fill: '#6366f1', strokeWidth: 2, r: 6 }}
+                    activeDot={{ r: 8, stroke: '#6366f1', strokeWidth: 2 }}
                   />
-                  <defs>
-                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" />
-                      <stop offset="100%" stopColor="#8b5cf6" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
+                </LineChart>
               </ResponsiveContainer>
             </div>
+          </div>
 
-            {/* Overall Progress Pie Chart */}
-            <div className="mt-6">
-              <h3 className="font-semibold text-indigo-800 mb-4">Overall Progress</h3>
-              <div className="flex items-center justify-center">
-                <div className="w-48 h-48">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={80}
-                        startAngle={90}
-                        endAngle={450}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+          {/* Yearly Trend Line Chart */}
+          <div>
+            <h3 className="font-semibold text-indigo-800 mb-4">12-Month Adherence Trend</h3>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={yearlyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#8b5cf6"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="#8b5cf6"
+                    fontSize={12}
+                    domain={[0, 100]}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#f8fafc',
+                      border: '2px solid #8b5cf6',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: number) => [`${value}%`, 'Adherence']}
+                  />
+                  <Line 
+                    type="monotone"
+                    dataKey="percentage" 
+                    stroke="#8b5cf6"
+                    strokeWidth={3}
+                    dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 6 }}
+                    activeDot={{ r: 8, stroke: '#8b5cf6', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row - Streak and Overall Progress */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+          <div className="p-6 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border-2 border-yellow-200">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-orange-700 font-medium text-lg">Current Streak</span>
+              <Award className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="text-4xl font-bold text-orange-600 mb-2">
+              {overallStats.streak}
+            </div>
+            <div className="text-sm text-orange-600">
+              {overallStats.streak === 1 ? 'day' : 'days'} of perfect adherence
+            </div>
+          </div>
+
+          {/* Overall Progress Pie Chart */}
+          <div>
+            <h3 className="font-semibold text-indigo-800 mb-4">Overall Progress</h3>
+            <div className="flex items-center justify-center">
+              <div className="w-32 h-32">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={25}
+                      outerRadius={60}
+                      startAngle={90}
+                      endAngle={450}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="ml-6 space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Taken: {overallStats.totalTaken}</span>
                 </div>
-                <div className="ml-6 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium">Taken: {overallStats.totalTaken}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                    <span className="text-sm font-medium">Missed: {overallStats.totalScheduled - overallStats.totalTaken}</span>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Missed: {overallStats.totalScheduled - overallStats.totalTaken}</span>
                 </div>
               </div>
             </div>
