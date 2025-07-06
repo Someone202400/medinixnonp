@@ -1,495 +1,376 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Clock, Heart, Stethoscope, Brain, Activity } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Phone, Stethoscope, Activity, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
-interface SymptomQuestion {
+interface Question {
   id: string;
-  question: string;
-  type: 'multiple-choice' | 'scale' | 'text';
+  text: string;
+  type: 'yes_no' | 'scale' | 'multiple_choice';
   options?: string[];
-  required: boolean;
 }
 
-const symptomQuestions: SymptomQuestion[] = [
+interface SymptomResult {
+  severity: 'low' | 'moderate' | 'high' | 'emergency';
+  recommendations: string[];
+  seekMedicalAttention: boolean;
+}
+
+const questions: Question[] = [
   {
-    id: 'main_symptom',
-    question: 'What is your main symptom or concern?',
-    type: 'text',
-    required: true
+    id: 'chest_pain',
+    text: 'Are you experiencing chest pain or discomfort?',
+    type: 'yes_no'
+  },
+  {
+    id: 'breathing_difficulty',
+    text: 'Are you having difficulty breathing or shortness of breath?',
+    type: 'yes_no'
   },
   {
     id: 'pain_level',
-    question: 'On a scale of 1-10, how would you rate your pain/discomfort?',
-    type: 'scale',
-    required: true
+    text: 'On a scale of 1-10, how would you rate your overall pain level?',
+    type: 'scale'
+  },
+  {
+    id: 'fever',
+    text: 'Do you have a fever (temperature above 100.4°F/38°C)?',
+    type: 'yes_no'
   },
   {
     id: 'duration',
-    question: 'How long have you been experiencing this symptom?',
-    type: 'multiple-choice',
-    options: ['Less than 1 day', '1-3 days', '1 week', '2-4 weeks', 'More than 1 month'],
-    required: true
+    text: 'How long have you been experiencing these symptoms?',
+    type: 'multiple_choice',
+    options: ['Less than 1 hour', '1-6 hours', '6-24 hours', 'More than 24 hours']
   },
   {
-    id: 'severity',
-    question: 'How would you describe the severity?',
-    type: 'multiple-choice',
-    options: ['Mild', 'Moderate', 'Severe', 'Very Severe'],
-    required: true
+    id: 'nausea_vomiting',
+    text: 'Are you experiencing nausea or vomiting?',
+    type: 'yes_no'
   },
   {
-    id: 'location',
-    question: 'Where is the symptom located?',
-    type: 'text',
-    required: false
-  },
-  {
-    id: 'triggers',
-    question: 'What makes it better or worse?',
-    type: 'text',
-    required: false
-  },
-  {
-    id: 'additional_symptoms',
-    question: 'Do you have any additional symptoms? (Please describe)',
-    type: 'text',
-    required: false
-  },
-  {
-    id: 'activity_level',
-    question: 'How has this affected your daily activities?',
-    type: 'multiple-choice',
-    options: ['No impact', 'Minor impact', 'Moderate impact', 'Significant impact', 'Unable to perform activities'],
-    required: false
+    id: 'dizziness',
+    text: 'Are you feeling dizzy or lightheaded?',
+    type: 'yes_no'
   }
 ];
 
-const SymptomChecker: React.FC = () => {
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [responses, setResponses] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [analysis, setAnalysis] = useState<any>(null);
+const SymptomChecker = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [responses, setResponses] = useState<Record<string, any>>({});
+  const [result, setResult] = useState<SymptomResult | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleResponse = (questionId: string, value: string) => {
-    setResponses(prev => ({
-      ...prev,
-      [questionId]: value
-    }));
-  };
+  const currentQuestion = questions[currentQuestionIndex];
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
-  const nextQuestion = () => {
-    const currentQ = symptomQuestions[currentQuestion];
-    if (currentQ.required && !responses[currentQ.id]) {
-      toast({
-        title: "Required Field",
-        description: "Please answer this question before proceeding.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    if (currentQuestion < symptomQuestions.length - 1) {
-      setCurrentQuestion(prev => prev + 1);
+  const handleResponse = (response: any) => {
+    const newResponses = { ...responses, [currentQuestion.id]: response };
+    setResponses(newResponses);
+
+    if (isLastQuestion) {
+      analyzeSymptoms(newResponses);
     } else {
-      analyzeSymptoms();
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
     }
   };
 
-  const analyzeSymptoms = async () => {
-    setIsLoading(true);
+  const analyzeSymptoms = async (allResponses: Record<string, any>) => {
+    setLoading(true);
     
     try {
-      const mainSymptom = responses.main_symptom?.toLowerCase() || '';
-      const painLevel = parseInt(responses.pain_level) || 0;
-      const severity = responses.severity || '';
-      const duration = responses.duration || '';
-      const location = responses.location?.toLowerCase() || '';
-      const triggers = responses.triggers?.toLowerCase() || '';
-      const activityLevel = responses.activity_level || '';
-      
-      let possibleConditions = [];
-      let possibleInjuries = [];
-      let urgencyLevel = 'low';
-      let recommendations = [];
-      let confidence = 0.6;
+      // Simple rule-based analysis
+      let severity: SymptomResult['severity'] = 'low';
+      const recommendations: string[] = [];
+      let seekMedicalAttention = false;
 
-      // Enhanced symptom analysis with injury detection
-      if (mainSymptom.includes('chest pain') || mainSymptom.includes('heart') || mainSymptom.includes('cardiac')) {
-        possibleConditions.push('Cardiac concerns', 'Angina pectoris', 'Costochondritis');
-        if (location.includes('left') || triggers.includes('exercise')) {
-          possibleConditions.push('Myocardial infarction risk');
-          urgencyLevel = 'high';
-        }
-        urgencyLevel = urgencyLevel === 'low' ? 'high' : urgencyLevel;
-        recommendations.push('Seek immediate medical attention', 'Call emergency services if severe');
-        confidence = 0.85;
-      } else if (mainSymptom.includes('headache') || mainSymptom.includes('head pain')) {
-        if (severity === 'Very Severe' || painLevel > 8) {
-          possibleConditions.push('Severe migraine', 'Cluster headache', 'Secondary headache');
-          if (mainSymptom.includes('sudden') || triggers.includes('sudden')) {
-            possibleConditions.push('Subarachnoid hemorrhage risk');
-            urgencyLevel = 'high';
-          } else {
-            urgencyLevel = 'medium';
-          }
-          confidence = 0.75;
-        } else {
-          possibleConditions.push('Tension headache', 'Stress headache', 'Dehydration headache');
-          urgencyLevel = 'low';
-          confidence = 0.7;
-        }
-        recommendations.push('Rest in quiet, dark room', 'Stay hydrated', 'Consider over-the-counter pain relief');
-      } else if (mainSymptom.includes('back pain') || mainSymptom.includes('spine')) {
-        possibleConditions.push('Muscle strain', 'Herniated disc', 'Sciatica');
-        if (location.includes('lower') && painLevel > 6) {
-          possibleInjuries.push('Lower back muscle strain', 'Lumbar disc injury');
-        }
-        if (triggers.includes('lifting') || triggers.includes('movement')) {
-          possibleInjuries.push('Mechanical back injury', 'Muscle tear');
-        }
-        urgencyLevel = painLevel > 7 ? 'medium' : 'low';
-        recommendations.push('Rest and avoid heavy lifting', 'Apply ice for acute pain', 'Gentle stretching when tolerated');
-        confidence = 0.7;
-      } else if (mainSymptom.includes('knee') || mainSymptom.includes('joint')) {
-        possibleConditions.push('Arthritis', 'Joint inflammation', 'Bursitis');
-        if (triggers.includes('sport') || triggers.includes('running') || triggers.includes('fall')) {
-          possibleInjuries.push('Ligament strain', 'Meniscus tear', 'Patellofemoral injury');
-        }
-        if (mainSymptom.includes('swelling') || triggers.includes('swelling')) {
-          possibleInjuries.push('Acute joint injury', 'Ligament damage');
-          urgencyLevel = 'medium';
-        }
-        recommendations.push('Rest and elevate', 'Apply ice for swelling', 'Avoid weight-bearing if severe');
-        confidence = 0.75;
-      } else if (mainSymptom.includes('ankle') || mainSymptom.includes('foot')) {
-        possibleConditions.push('Sprain', 'Strain', 'Plantar fasciitis');
-        if (triggers.includes('twist') || triggers.includes('fall') || triggers.includes('sport')) {
-          possibleInjuries.push('Ankle sprain', 'Ligament tear', 'Fracture risk');
-          if (painLevel > 7 || activityLevel.includes('Unable')) {
-            urgencyLevel = 'medium';
-            possibleInjuries.push('Severe sprain or fracture');
-          }
-        }
-        recommendations.push('RICE protocol (Rest, Ice, Compression, Elevation)', 'Avoid weight-bearing if severe');
-        confidence = 0.8;
-      } else if (mainSymptom.includes('wrist') || mainSymptom.includes('hand')) {
-        possibleConditions.push('Carpal tunnel syndrome', 'Tendinitis', 'Arthritis');
-        if (triggers.includes('fall') || triggers.includes('impact')) {
-          possibleInjuries.push('Wrist fracture', 'Scaphoid injury', 'Ligament damage');
-          urgencyLevel = 'medium';
-        }
-        recommendations.push('Rest and immobilize', 'Apply ice for acute pain', 'Avoid repetitive motions');
-        confidence = 0.7;
-      } else if (mainSymptom.includes('shoulder')) {
-        possibleConditions.push('Rotator cuff injury', 'Impingement syndrome', 'Bursitis');
-        if (triggers.includes('overhead') || triggers.includes('lifting')) {
-          possibleInjuries.push('Rotator cuff tear', 'Shoulder impingement', 'Muscle strain');
-        }
-        recommendations.push('Rest and avoid overhead activities', 'Apply ice for acute pain', 'Gentle range of motion');
-        confidence = 0.75;
-      } else if (mainSymptom.includes('fever') || mainSymptom.includes('high temperature')) {
-        possibleConditions.push('Viral infection', 'Bacterial infection', 'Inflammatory condition');
-        if (painLevel > 7 || activityLevel.includes('Significant') || activityLevel.includes('Unable')) {
-          urgencyLevel = 'medium';
-          recommendations.push('Monitor temperature closely', 'Seek medical attention if fever persists');
-        } else {
-          urgencyLevel = 'low';
-          recommendations.push('Rest and hydration', 'Monitor symptoms');
-        }
-        confidence = 0.65;
-      } else if (mainSymptom.includes('cough') || mainSymptom.includes('throat')) {
-        if (duration.includes('More than 1 month')) {
-          possibleConditions.push('Chronic cough', 'Post-viral cough', 'Respiratory condition');
-          urgencyLevel = 'medium';
-        } else {
-          possibleConditions.push('Upper respiratory infection', 'Common cold', 'Viral pharyngitis');
-          urgencyLevel = 'low';
-        }
-        recommendations.push('Stay hydrated', 'Rest voice', 'Consider throat lozenges');
-        confidence = 0.7;
-      } else if (mainSymptom.includes('stomach') || mainSymptom.includes('abdominal') || mainSymptom.includes('nausea')) {
-        possibleConditions.push('Gastroenteritis', 'Indigestion', 'Food intolerance');
-        if (severity === 'Very Severe' || painLevel > 8) {
-          possibleConditions.push('Appendicitis risk', 'Bowel obstruction risk');
-          urgencyLevel = 'high';
-          recommendations.push('Seek immediate medical attention if severe abdominal pain');
-        } else {
-          urgencyLevel = 'low';
-          recommendations.push('Bland diet', 'Stay hydrated', 'Rest');
-        }
-        confidence = 0.65;
+      // Emergency conditions
+      if (allResponses.chest_pain === 'yes' && allResponses.breathing_difficulty === 'yes') {
+        severity = 'emergency';
+        recommendations.push('Call emergency services immediately');
+        recommendations.push('These symptoms may indicate a serious cardiac or respiratory emergency');
+        seekMedicalAttention = true;
+      } else if (allResponses.pain_level >= 8) {
+        severity = 'emergency';
+        recommendations.push('Seek immediate medical attention');
+        recommendations.push('Severe pain requires urgent evaluation');
+        seekMedicalAttention = true;
+      } else if (allResponses.chest_pain === 'yes' || allResponses.breathing_difficulty === 'yes') {
+        severity = 'high';
+        recommendations.push('Contact your healthcare provider promptly');
+        recommendations.push('Monitor symptoms closely');
+        seekMedicalAttention = true;
+      } else if (allResponses.fever === 'yes' && allResponses.duration === 'More than 24 hours') {
+        severity = 'moderate';
+        recommendations.push('Consider contacting your healthcare provider');
+        recommendations.push('Continue monitoring your temperature');
+        seekMedicalAttention = true;
+      } else if (allResponses.pain_level >= 5) {
+        severity = 'moderate';
+        recommendations.push('Monitor symptoms and consider over-the-counter pain relief');
+        recommendations.push('Contact healthcare provider if symptoms worsen');
       } else {
-        possibleConditions.push('General symptom assessment needed', 'Non-specific symptoms');
-        urgencyLevel = painLevel > 8 ? 'high' : 'low';
-        recommendations.push('Monitor symptoms', 'Track changes');
-        confidence = 0.5;
+        severity = 'low';
+        recommendations.push('Rest and stay hydrated');
+        recommendations.push('Monitor symptoms and seek care if they worsen');
       }
 
-      // Adjust urgency based on severity and duration
-      if (severity === 'Very Severe' || painLevel > 8) {
-        urgencyLevel = urgencyLevel === 'low' ? 'medium' : 'high';
+      // Additional recommendations based on specific symptoms
+      if (allResponses.nausea_vomiting === 'yes') {
+        recommendations.push('Stay hydrated with small sips of clear fluids');
+      }
+      if (allResponses.dizziness === 'yes') {
+        recommendations.push('Avoid sudden movements and rest in a safe position');
       }
 
-      if (duration.includes('More than 1 month') && urgencyLevel === 'low') {
-        urgencyLevel = 'medium';
-        recommendations.push('Consider consultation for persistent symptoms');
-      }
-
-      // Activity level impact
-      if (activityLevel.includes('Unable') || activityLevel.includes('Significant')) {
-        urgencyLevel = urgencyLevel === 'low' ? 'medium' : urgencyLevel;
-        recommendations.push('Significant impact on daily life warrants medical evaluation');
-      }
-
-      const analysisResult = {
-        possibleConditions,
-        possibleInjuries,
-        urgencyLevel,
-        recommendations: recommendations.concat([
-          'This analysis is based on reported symptoms only',
-          'Not a substitute for professional medical diagnosis',
-          'Consult healthcare provider for proper evaluation',
-          'Seek immediate care if symptoms suddenly worsen'
-        ]),
-        confidence
+      const finalResult: SymptomResult = {
+        severity,
+        recommendations,
+        seekMedicalAttention
       };
 
-      // Save to database
-      const { error } = await supabase
-        .from('symptom_sessions')
-        .insert({
-          user_id: user?.id,
-          symptoms: { 
-            main_symptom: mainSymptom, 
-            pain_level: painLevel, 
-            severity, 
-            duration, 
-            location, 
-            triggers,
-            activity_level: activityLevel
-          },
-          responses,
-          ai_analysis: analysisResult,
-          recommendations: analysisResult.recommendations.join('; ')
-        });
+      setResult(finalResult);
 
-      if (error) {
-        console.error('Error saving symptom session:', error);
+      // Save to database if user is logged in
+      if (user) {
+        const { error } = await supabase
+          .from('symptom_sessions')
+          .insert([{
+            user_id: user.id,
+            symptoms: Object.keys(allResponses).filter(key => allResponses[key] === 'yes'),
+            responses: allResponses,
+            recommendations: recommendations.join('; '),
+            ai_analysis: {
+              severity,
+              seek_medical_attention: seekMedicalAttention
+            }
+          }]);
+
+        if (error) {
+          console.error('Error saving symptom session:', error);
+        }
       }
 
-      setAnalysis(analysisResult);
     } catch (error) {
       console.error('Error analyzing symptoms:', error);
       toast({
         title: "Analysis Error",
-        description: "Unable to analyze symptoms. Please try again.",
+        description: "There was an error analyzing your symptoms. Please try again.",
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   const resetChecker = () => {
-    setCurrentQuestion(0);
+    setCurrentQuestionIndex(0);
     setResponses({});
-    setAnalysis(null);
+    setResult(null);
   };
 
-  if (analysis) {
+  const handleEmergencyServices = () => {
+    // Navigate to contact doctor page
+    navigate('/contact-doctor');
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'emergency': return 'border-red-500 bg-red-50';
+      case 'high': return 'border-orange-500 bg-orange-50';
+      case 'moderate': return 'border-yellow-500 bg-yellow-50';
+      default: return 'border-green-500 bg-green-50';
+    }
+  };
+
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'emergency': return <AlertTriangle className="h-6 w-6 text-red-600" />;
+      case 'high': return <Heart className="h-6 w-6 text-orange-600" />;
+      case 'moderate': return <Activity className="h-6 w-6 text-yellow-600" />;
+      default: return <CheckCircle className="h-6 w-6 text-green-600" />;
+    }
+  };
+
+  if (loading) {
     return (
-      <Card className="w-full max-w-3xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-blue-600" />
-            AI Symptom Analysis Results
-          </CardTitle>
-          <CardDescription>
-            Advanced analysis based on your responses (Confidence: {Math.round(analysis.confidence * 100)}%)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Medical Disclaimer */}
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
-              <div>
-                <h4 className="font-semibold text-red-800">Important Medical Disclaimer</h4>
-                <p className="text-red-700 text-sm mt-1">
-                  This AI analysis is for informational purposes only and should NOT replace professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider for proper medical evaluation.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Urgency Level */}
-          <div className="flex items-center gap-2">
-            <Label>Urgency Assessment:</Label>
-            <Badge 
-              variant={analysis.urgencyLevel === 'high' ? 'destructive' : 
-                      analysis.urgencyLevel === 'medium' ? 'default' : 'secondary'}
-              className="text-sm"
-            >
-              {analysis.urgencyLevel.toUpperCase()} PRIORITY
-            </Badge>
-          </div>
-
-          {/* Possible Conditions */}
-          <div>
-            <Label className="text-base font-semibold">Possible Conditions to Consider:</Label>
-            <div className="mt-2 space-y-2">
-              {analysis.possibleConditions.map((condition: string, index: number) => (
-                <div key={index} className="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
-                  <Stethoscope className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">{condition}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Possible Injuries */}
-          {analysis.possibleInjuries && analysis.possibleInjuries.length > 0 && (
-            <div>
-              <Label className="text-base font-semibold">Possible Injuries to Consider:</Label>
-              <div className="mt-2 space-y-2">
-                {analysis.possibleInjuries.map((injury: string, index: number) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
-                    <Activity className="h-4 w-4 text-orange-500" />
-                    <span className="font-medium">{injury}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recommendations */}
-          <div>
-            <Label className="text-base font-semibold">Recommendations:</Label>
-            <div className="mt-2 space-y-2">
-              {analysis.recommendations.map((rec: string, index: number) => (
-                <div key={index} className="flex items-start gap-2">
-                  <CheckCircle className="h-4 w-4 text-green-500 mt-0.5" />
-                  <span className="text-sm">{rec}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <Button onClick={resetChecker} variant="outline">
-              New Assessment
-            </Button>
-            <Button onClick={() => window.open('tel:911', '_self')} variant="destructive">
-              Emergency Services
-            </Button>
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <p className="text-lg font-medium">Analyzing your symptoms...</p>
           </div>
         </CardContent>
       </Card>
     );
   }
 
-  const currentQ = symptomQuestions[currentQuestion];
+  if (result) {
+    return (
+      <Card className={`w-full max-w-2xl mx-auto border-2 ${getSeverityColor(result.severity)}`}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            {getSeverityIcon(result.severity)}
+            Symptom Analysis Results
+            <Badge variant={result.severity === 'emergency' ? 'destructive' : 'default'}>
+              {result.severity.toUpperCase()}
+            </Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Recommendations:</h3>
+            <ul className="space-y-2">
+              {result.recommendations.map((rec, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-600 mt-1 flex-shrink-0" />
+                  <span className="text-gray-700">{rec}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {result.severity === 'emergency' && (
+            <div className="bg-red-100 border border-red-300 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <span className="font-semibold text-red-800">Emergency Alert</span>
+              </div>
+              <p className="text-red-700 mb-3">
+                Your symptoms may indicate a serious medical emergency. Please seek immediate medical attention.
+              </p>
+              <Button 
+                onClick={handleEmergencyServices}
+                className="bg-red-600 hover:bg-red-700 text-white w-full"
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Contact Emergency Services
+              </Button>
+            </div>
+          )}
+
+          {result.seekMedicalAttention && result.severity !== 'emergency' && (
+            <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Stethoscope className="h-5 w-5 text-yellow-600" />
+                <span className="font-semibold text-yellow-800">Medical Attention Recommended</span>
+              </div>
+              <p className="text-yellow-700 mb-3">
+                Based on your symptoms, we recommend contacting your healthcare provider.
+              </p>
+              <Button 
+                onClick={handleEmergencyServices}
+                variant="outline" 
+                className="border-yellow-500 text-yellow-700 hover:bg-yellow-50 w-full"
+              >
+                <Stethoscope className="h-4 w-4 mr-2" />
+                Contact Your Doctor
+              </Button>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button onClick={resetChecker} variant="outline" className="flex-1">
+              Take Another Assessment
+            </Button>
+          </div>
+
+          <div className="text-sm text-gray-500 bg-gray-50 p-3 rounded-lg">
+            <strong>Disclaimer:</strong> This symptom checker is for informational purposes only and should not replace professional medical advice, diagnosis, or treatment. Always seek the advice of qualified healthcare providers with any questions you may have regarding a medical condition.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="h-5 w-5 text-blue-600" />
-          AI Symptom Checker
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Heart className="h-6 w-6 text-blue-600" />
+          Symptom Checker
         </CardTitle>
-        <CardDescription>
-          Advanced AI-powered symptom analysis with personalized insights and injury detection
-        </CardDescription>
-        <div className="flex items-center gap-2 mt-4">
-          <Clock className="h-4 w-4" />
-          <span className="text-sm text-gray-600">
-            Question {currentQuestion + 1} of {symptomQuestions.length}
-          </span>
+        <div className="flex justify-between items-center">
+          <p className="text-gray-600">Question {currentQuestionIndex + 1} of {questions.length}</p>
+          <div className="w-32 bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+            />
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div>
-          <Label className="text-base font-semibold">{currentQ.question}</Label>
-          {currentQ.required && <span className="text-red-500 ml-1">*</span>}
+        <div className="bg-blue-50 p-4 rounded-lg">
+          <h3 className="font-medium text-lg mb-3">{currentQuestion.text}</h3>
           
-          <div className="mt-3">
-            {currentQ.type === 'text' && (
-              <Textarea
-                value={responses[currentQ.id] || ''}
-                onChange={(e) => handleResponse(currentQ.id, e.target.value)}
-                placeholder="Please describe in detail..."
-                className="min-h-20"
-              />
-            )}
-            
-            {currentQ.type === 'scale' && (
-              <div className="space-y-2">
-                <Input
-                  type="range"
-                  min="1"
-                  max="10"
-                  value={responses[currentQ.id] || '1'}
-                  onChange={(e) => handleResponse(currentQ.id, e.target.value)}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>1 (Minimal)</span>
-                  <span>Current: {responses[currentQ.id] || '1'}</span>
-                  <span>10 (Severe)</span>
-                </div>
+          <div className="space-y-3">
+            {currentQuestion.type === 'yes_no' && (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => handleResponse('yes')}
+                  className="flex-1 bg-green-600 hover:bg-green-700"
+                >
+                  Yes
+                </Button>
+                <Button 
+                  onClick={() => handleResponse('no')}
+                  className="flex-1 bg-gray-600 hover:bg-gray-700"
+                >
+                  No
+                </Button>
               </div>
             )}
-            
-            {currentQ.type === 'multiple-choice' && (
+
+            {currentQuestion.type === 'scale' && (
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                  <Button
+                    key={num}
+                    onClick={() => handleResponse(num)}
+                    variant={num <= 3 ? 'default' : num <= 6 ? 'secondary' : 'destructive'}
+                    className="aspect-square"
+                  >
+                    {num}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {currentQuestion.type === 'multiple_choice' && currentQuestion.options && (
               <div className="space-y-2">
-                {currentQ.options?.map((option) => (
-                  <div key={option} className="flex items-center space-x-2">
-                    <input
-                      type="radio"
-                      id={option}
-                      name={currentQ.id}
-                      value={option}
-                      checked={responses[currentQ.id] === option}
-                      onChange={(e) => handleResponse(currentQ.id, e.target.value)}
-                      className="text-blue-600"
-                    />
-                    <Label htmlFor={option} className="cursor-pointer">{option}</Label>
-                  </div>
+                {currentQuestion.options.map((option, index) => (
+                  <Button
+                    key={index}
+                    onClick={() => handleResponse(option)}
+                    variant="outline"
+                    className="w-full justify-start text-left"
+                  >
+                    {option}
+                  </Button>
                 ))}
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {currentQuestion > 0 && (
-            <Button 
-              onClick={() => setCurrentQuestion(prev => prev - 1)}
-              variant="outline"
-            >
-              Previous
-            </Button>
-          )}
+        {currentQuestionIndex > 0 && (
           <Button 
-            onClick={nextQuestion}
-            disabled={isLoading}
-            className="ml-auto"
+            onClick={() => setCurrentQuestionIndex(currentQuestionIndex - 1)}
+            variant="outline"
           >
-            {isLoading ? 'Analyzing with AI...' : 
-             currentQuestion === symptomQuestions.length - 1 ? 'Analyze Symptoms' : 'Next'}
+            Previous Question
           </Button>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

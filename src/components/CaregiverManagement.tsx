@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,40 +8,29 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { UserPlus, Mail, Phone, Trash2, Edit } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Users, Plus, Mail, Phone, Trash2, Bell, BellOff, UserCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 
-interface CaregiverFormData {
+interface Caregiver {
+  id: string;
   name: string;
   email: string;
   phone_number: string;
   relationship: string;
   notifications_enabled: boolean;
-}
-
-interface Caregiver {
-  id: string;
-  name: string;
-  email: string | null;
-  phone_number: string | null;
-  relationship: string | null;
-  notifications_enabled: boolean | null;
   created_at: string;
-  updated_at: string;
-  user_id: string;
 }
 
 const CaregiverManagement = () => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingCaregiver, setEditingCaregiver] = useState<Caregiver | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const [formData, setFormData] = useState<CaregiverFormData>({
+  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddingCaregiver, setIsAddingCaregiver] = useState(false);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newCaregiver, setNewCaregiver] = useState({
     name: '',
     email: '',
     phone_number: '',
@@ -48,203 +38,269 @@ const CaregiverManagement = () => {
     notifications_enabled: true
   });
 
-  // Fetch caregivers
-  const { data: caregivers = [], isLoading } = useQuery({
-    queryKey: ['caregivers'],
-    queryFn: async () => {
+  useEffect(() => {
+    if (user) {
+      fetchCaregivers();
+    }
+  }, [user]);
+
+  const fetchCaregivers = async () => {
+    try {
       const { data, error } = await supabase
         .from('caregivers')
         .select('*')
+        .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as Caregiver[];
-    },
-    enabled: !!user
-  });
 
-  // Add/Update caregiver mutation
-  const caregiverMutation = useMutation({
-    mutationFn: async (caregiverData: CaregiverFormData) => {
-      if (editingCaregiver) {
-        const { data, error } = await supabase
-          .from('caregivers')
-          .update({
-            name: caregiverData.name,
-            email: caregiverData.email || null,
-            phone_number: caregiverData.phone_number || null,
-            relationship: caregiverData.relationship || null,
-            notifications_enabled: caregiverData.notifications_enabled
-          })
-          .eq('id', editingCaregiver.id)
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase
-          .from('caregivers')
-          .insert([{
-            name: caregiverData.name,
-            email: caregiverData.email || null,
-            phone_number: caregiverData.phone_number || null,
-            relationship: caregiverData.relationship || null,
-            notifications_enabled: caregiverData.notifications_enabled,
-            user_id: user!.id
-          }])
-          .select()
-          .single();
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['caregivers'] });
-      setIsDialogOpen(false);
-      resetForm();
-      toast({
-        title: editingCaregiver ? "Caregiver updated" : "Caregiver added",
-        description: `${formData.name} has been ${editingCaregiver ? 'updated' : 'added'} successfully.`
-      });
-    },
-    onError: (error: Error) => {
+      if (error) throw error;
+      setCaregivers(data || []);
+    } catch (error) {
+      console.error('Error fetching caregivers:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to load caregivers.",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
-  });
-
-  // Delete caregiver mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (caregiverId: string) => {
-      const { error } = await supabase
-        .from('caregivers')
-        .delete()
-        .eq('id', caregiverId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['caregivers'] });
-      toast({
-        title: "Caregiver removed",
-        description: "Caregiver has been removed successfully."
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone_number: '',
-      relationship: '',
-      notifications_enabled: true
-    });
-    setEditingCaregiver(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || (!formData.email && !formData.phone_number)) {
+  const sendCaregiverWelcomeNotification = async (caregiver: any) => {
+    try {
+      // Get user profile for patient name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      const patientName = profile?.full_name || profile?.email || 'Patient';
+
+      // Create notification for the user (patient)
+      const userNotification = {
+        user_id: user?.id,
+        title: '✅ Caregiver Added Successfully',
+        message: `${caregiver.name} has been added as your caregiver and will receive medication notifications.`,
+        type: 'caregiver_added',
+        scheduled_for: new Date().toISOString(),
+        channels: JSON.stringify(['push'])
+      };
+
+      // Create notification for the caregiver
+      const caregiverNotification = {
+        user_id: user?.id,
+        title: '👥 You\'ve been added as a caregiver',
+        message: `${patientName} has added you as their caregiver. You'll receive medication reminders and updates.`,
+        type: 'caregiver_welcome',
+        scheduled_for: new Date().toISOString(),
+        channels: JSON.stringify(['push', 'email']),
+        caregiver_id: caregiver.id
+      };
+
+      // Insert both notifications
+      const { error: notifError } = await supabase
+        .from('notifications')
+        .insert([userNotification, caregiverNotification]);
+
+      if (notifError) {
+        console.error('Error creating caregiver notifications:', notifError);
+      } else {
+        // Send email notification to caregiver via edge function
+        await supabase.functions.invoke('send-notifications', {
+          body: {
+            notifications: [caregiverNotification],
+            caregivers: [caregiver]
+          }
+        });
+
+        console.log('Caregiver welcome notifications sent successfully');
+      }
+    } catch (error) {
+      console.error('Error sending caregiver welcome notification:', error);
+    }
+  };
+
+  const addCaregiver = async () => {
+    if (!newCaregiver.name || !newCaregiver.email || !newCaregiver.relationship) {
       toast({
-        title: "Validation Error",
-        description: "Please provide a name and either email or phone number.",
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
         variant: "destructive"
       });
       return;
     }
-    caregiverMutation.mutate(formData);
-  };
 
-  const handleEdit = (caregiver: Caregiver) => {
-    setEditingCaregiver(caregiver);
-    setFormData({
-      name: caregiver.name,
-      email: caregiver.email || '',
-      phone_number: caregiver.phone_number || '',
-      relationship: caregiver.relationship || '',
-      notifications_enabled: caregiver.notifications_enabled || true
-    });
-    setIsDialogOpen(true);
-  };
+    setIsAddingCaregiver(true);
+    try {
+      const { data, error } = await supabase
+        .from('caregivers')
+        .insert([{
+          user_id: user?.id,
+          name: newCaregiver.name,
+          email: newCaregiver.email,
+          phone_number: newCaregiver.phone_number,
+          relationship: newCaregiver.relationship,
+          notifications_enabled: newCaregiver.notifications_enabled
+        }])
+        .select()
+        .single();
 
-  const handleDelete = (caregiverId: string) => {
-    if (window.confirm('Are you sure you want to remove this caregiver?')) {
-      deleteMutation.mutate(caregiverId);
+      if (error) throw error;
+
+      setCaregivers([data, ...caregivers]);
+      setNewCaregiver({
+        name: '',
+        email: '',
+        phone_number: '',
+        relationship: '',
+        notifications_enabled: true
+      });
+      setShowAddDialog(false);
+
+      // Send welcome notification
+      await sendCaregiverWelcomeNotification(data);
+
+      toast({
+        title: "Caregiver Added! 👥",
+        description: `${data.name} has been added as your caregiver and will receive notifications.`,
+      });
+    } catch (error: any) {
+      console.error('Error adding caregiver:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add caregiver.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAddingCaregiver(false);
     }
   };
 
+  const toggleNotifications = async (caregiverId: string, enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('caregivers')
+        .update({ notifications_enabled: enabled })
+        .eq('id', caregiverId);
+
+      if (error) throw error;
+
+      setCaregivers(caregivers.map(c => 
+        c.id === caregiverId ? { ...c, notifications_enabled: enabled } : c
+      ));
+
+      toast({
+        title: enabled ? "Notifications Enabled" : "Notifications Disabled",
+        description: `Medication notifications ${enabled ? 'enabled' : 'disabled'} for this caregiver.`,
+      });
+    } catch (error) {
+      console.error('Error updating caregiver notifications:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update notification settings.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const deleteCaregiver = async (caregiverId: string, caregiverName: string) => {
+    if (!confirm(`Are you sure you want to remove ${caregiverName} as your caregiver?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('caregivers')
+        .delete()
+        .eq('id', caregiverId);
+
+      if (error) throw error;
+
+      setCaregivers(caregivers.filter(c => c.id !== caregiverId));
+      toast({
+        title: "Caregiver Removed",
+        description: `${caregiverName} has been removed from your caregivers.`,
+      });
+    } catch (error) {
+      console.error('Error deleting caregiver:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove caregiver.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card className="bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-purple-500 border-t-transparent mx-auto mb-2"></div>
+            <p className="text-gray-600">Loading caregivers...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className="bg-gradient-to-br from-white/90 to-purple-50/70 backdrop-blur-xl border-2 border-purple-200/30 shadow-2xl">
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5" />
-            Caregivers & Spectators
-          </CardTitle>
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) resetForm();
-          }}>
+        <CardTitle className="flex items-center justify-between text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+          <div className="flex items-center gap-2">
+            <Users className="h-6 w-6 text-purple-600" />
+            Caregiver Management
+            <Badge className="ml-2 bg-purple-100 text-purple-700">
+              {caregivers.length} caregivers
+            </Badge>
+          </div>
+          <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
             <DialogTrigger asChild>
-              <Button>
-                <UserPlus className="h-4 w-4 mr-2" />
+              <Button className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white">
+                <Plus className="h-4 w-4 mr-2" />
                 Add Caregiver
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
-                <DialogTitle>
-                  {editingCaregiver ? 'Edit Caregiver' : 'Add New Caregiver'}
-                </DialogTitle>
+                <DialogTitle>Add New Caregiver</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Name *</Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Enter caregiver's name"
-                    required
+                    value={newCaregiver.name}
+                    onChange={(e) => setNewCaregiver({ ...newCaregiver, name: e.target.value })}
+                    placeholder="Enter caregiver's full name"
                   />
                 </div>
-                
-                <div>
-                  <Label htmlFor="email">Email</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address *</Label>
                   <Input
                     id="email"
                     type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    value={newCaregiver.email}
+                    onChange={(e) => setNewCaregiver({ ...newCaregiver, email: e.target.value })}
                     placeholder="Enter email address"
                   />
                 </div>
-                
-                <div>
+                <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
-                    value={formData.phone_number}
-                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    value={newCaregiver.phone_number}
+                    onChange={(e) => setNewCaregiver({ ...newCaregiver, phone_number: e.target.value })}
                     placeholder="Enter phone number"
                   />
                 </div>
-                
-                <div>
-                  <Label htmlFor="relationship">Relationship</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="relationship">Relationship *</Label>
                   <Select
-                    value={formData.relationship}
-                    onValueChange={(value) => setFormData({ ...formData, relationship: value })}
+                    value={newCaregiver.relationship}
+                    onValueChange={(value) => setNewCaregiver({ ...newCaregiver, relationship: value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select relationship" />
@@ -255,110 +311,107 @@ const CaregiverManagement = () => {
                       <SelectItem value="child">Child</SelectItem>
                       <SelectItem value="sibling">Sibling</SelectItem>
                       <SelectItem value="friend">Friend</SelectItem>
-                      <SelectItem value="caregiver">Professional Caregiver</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-                
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="notifications"
-                    checked={formData.notifications_enabled}
-                    onCheckedChange={(checked) => setFormData({ ...formData, notifications_enabled: checked })}
+                    checked={newCaregiver.notifications_enabled}
+                    onCheckedChange={(checked) => setNewCaregiver({ ...newCaregiver, notifications_enabled: checked })}
                   />
-                  <Label htmlFor="notifications">Enable notifications</Label>
+                  <Label htmlFor="notifications">Enable medication notifications</Label>
                 </div>
-                
-                <div className="flex justify-end space-x-2">
+                <div className="flex gap-3">
                   <Button
-                    type="button"
+                    onClick={addCaregiver}
+                    disabled={isAddingCaregiver}
+                    className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+                  >
+                    {isAddingCaregiver ? "Adding..." : "Add Caregiver"}
+                  </Button>
+                  <Button
                     variant="outline"
-                    onClick={() => setIsDialogOpen(false)}
+                    onClick={() => setShowAddDialog(false)}
+                    className="flex-1"
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={caregiverMutation.isPending}
-                  >
-                    {caregiverMutation.isPending 
-                      ? (editingCaregiver ? 'Updating...' : 'Adding...') 
-                      : (editingCaregiver ? 'Update' : 'Add')
-                    }
-                  </Button>
                 </div>
-              </form>
+              </div>
             </DialogContent>
           </Dialog>
-        </div>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="text-center py-4">Loading caregivers...</div>
-        ) : caregivers.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <UserPlus className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>No caregivers added yet</p>
-            <p className="text-sm">Add caregivers to share your medication adherence updates</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
+        {caregivers.length > 0 ? (
+          <div className="space-y-4">
             {caregivers.map((caregiver) => (
-              <div key={caregiver.id} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{caregiver.name}</h3>
-                    {caregiver.relationship && (
-                      <Badge variant="secondary">{caregiver.relationship}</Badge>
-                    )}
-                    {!caregiver.notifications_enabled && (
-                      <Badge variant="outline">Notifications Off</Badge>
-                    )}
+              <div key={caregiver.id} className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center">
+                      <UserCheck className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{caregiver.name}</h3>
+                      <p className="text-sm text-gray-600 flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {caregiver.email}
+                        </span>
+                        {caregiver.phone_number && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {caregiver.phone_number}
+                          </span>
+                        )}
+                      </p>
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        {caregiver.relationship}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex gap-4 mt-1 text-sm text-gray-600">
-                    {caregiver.email && (
-                      <div className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {caregiver.email}
-                      </div>
-                    )}
-                    {caregiver.phone_number && (
-                      <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {caregiver.phone_number}
-                      </div>
-                    )}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {caregiver.notifications_enabled ? (
+                        <Bell className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <BellOff className="h-4 w-4 text-gray-400" />
+                      )}
+                      <Switch
+                        checked={caregiver.notifications_enabled}
+                        onCheckedChange={(checked) => toggleNotifications(caregiver.id, checked)}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => deleteCaregiver(caregiver.id, caregiver.name)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 border-red-300 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(caregiver)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDelete(caregiver.id)}
-                    disabled={deleteMutation.isPending}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
                 </div>
               </div>
             ))}
           </div>
+        ) : (
+          <div className="text-center py-12">
+            <Users className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-xl font-medium">No caregivers added yet</p>
+            <p className="text-gray-400 mb-6">Add family or friends to help monitor your medication schedule</p>
+            <Button
+              onClick={() => setShowAddDialog(true)}
+              className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Your First Caregiver
+            </Button>
+          </div>
         )}
-        
-        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <p className="text-sm text-blue-800">
-            <strong>How it works:</strong> Caregivers will receive updates about your medication adherence, 
-            what medications you took today, and basic health insights to help support your care.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );

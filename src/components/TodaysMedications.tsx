@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { format, isToday, parseISO } from 'date-fns';
 import { generateDailyMedicationSchedule } from '@/utils/medicationScheduler';
+import { notifyMedicationTaken } from '@/utils/notificationService';
 
 interface TodaysMedication {
   id: string;
@@ -84,29 +84,33 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
     try {
       console.log('Marking medication as taken:', medication.id);
       
+      const takenAt = new Date();
+      
       // Update medication log
       const { error: updateError } = await supabase
         .from('medication_logs')
         .update({
           status: 'taken',
-          taken_at: new Date().toISOString()
+          taken_at: takenAt.toISOString()
         })
         .eq('id', medication.id);
 
       if (updateError) throw updateError;
 
-      // Create user notification
-      await createUserNotification(medication);
-
-      // Send notifications to caregivers
-      await notifyCaregivers(medication);
+      // Send comprehensive notifications
+      await notifyMedicationTaken(
+        user?.id!,
+        medication.medication_name,
+        medication.dosage,
+        takenAt
+      );
 
       // Play notification sound
       playNotificationSound();
 
       toast({
         title: "Medication taken! 💊",
-        description: `${medication.medication_name} marked as taken.`,
+        description: `${medication.medication_name} marked as taken. Caregivers have been notified.`,
       });
 
       // Refresh the list and notify parent components
@@ -119,62 +123,6 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
         description: "Failed to mark medication as taken.",
         variant: "destructive"
       });
-    }
-  };
-
-  const createUserNotification = async (medication: TodaysMedication) => {
-    try {
-      const userNotification = {
-        user_id: user?.id,
-        title: 'Medication Taken',
-        message: `You have successfully taken your ${medication.medication_name} (${medication.dosage}) at ${format(new Date(), 'h:mm a')}.`,
-        type: 'medication_taken',
-        scheduled_for: new Date().toISOString(),
-        channels: JSON.stringify(['push'])
-      };
-
-      await supabase.from('notifications').insert([userNotification]);
-    } catch (error) {
-      console.error('Error creating user notification:', error);
-    }
-  };
-
-  const notifyCaregivers = async (medication: TodaysMedication) => {
-    try {
-      const { data: caregivers } = await supabase
-        .from('caregivers')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('notifications_enabled', true);
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user?.id)
-        .single();
-
-      if (caregivers && caregivers.length > 0) {
-        const notificationMessage = `${profile?.full_name || profile?.email || 'Patient'} has taken their ${medication.medication_name} (${medication.dosage}) at ${format(new Date(), 'h:mm a')}.`;
-
-        const notifications = caregivers.map(caregiver => ({
-          user_id: user?.id,
-          title: 'Medication Taken',
-          message: notificationMessage,
-          type: 'caregiver_notification',
-          scheduled_for: new Date().toISOString(),
-          channels: JSON.stringify(['push', 'email']),
-          caregiver_id: caregiver.id
-        }));
-
-        await supabase.from('notifications').insert(notifications);
-
-        // Send notifications via edge function
-        await supabase.functions.invoke('send-notifications', {
-          body: { notifications, caregivers }
-        });
-      }
-    } catch (error) {
-      console.error('Error notifying caregivers:', error);
     }
   };
 

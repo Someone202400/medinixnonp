@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -37,6 +36,41 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
   useEffect(() => {
     if (user) {
       fetchAdherenceData();
+      
+      // Set up real-time subscription for medication logs
+      const channel = supabase
+        .channel('medication-logs-adherence')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'medication_logs',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Medication log changed, refreshing adherence data');
+            fetchAdherenceData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'medications',
+            filter: `user_id=eq.${user.id}`
+          },
+          () => {
+            console.log('Medication changed, refreshing adherence data');
+            setTimeout(() => fetchAdherenceData(), 1000); // Small delay to ensure logs are updated
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user, refreshTrigger]);
 
@@ -63,6 +97,8 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         .order('scheduled_time', { ascending: true });
 
       if (error) throw error;
+
+      console.log('Fetched medication logs for adherence:', logs?.length);
 
       // Process weekly data (last 4 weeks)
       const weeklyStats: AdherenceData[] = [];

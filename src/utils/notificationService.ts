@@ -319,6 +319,91 @@ export const notifyMedicationTaken = async (
   }
 };
 
+export const notifyMedicationChanged = async (
+  userId: string,
+  changeType: 'added' | 'updated' | 'deleted',
+  medicationName: string,
+  details?: string
+) => {
+  try {
+    // Get user profile and caregivers
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    const { data: caregivers } = await supabase
+      .from('caregivers')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('notifications_enabled', true);
+
+    const notifications = [];
+    const patientName = profile?.full_name || profile?.email || 'Patient';
+
+    // Action messages
+    const actionMessages = {
+      added: {
+        user: `New medication ${medicationName} has been added to your schedule.`,
+        caregiver: `${patientName} has added ${medicationName} to their medication schedule.`
+      },
+      updated: {
+        user: `Your medication ${medicationName} schedule has been updated.`,
+        caregiver: `${patientName} has updated their ${medicationName} medication schedule.`
+      },
+      deleted: {
+        user: `Medication ${medicationName} has been removed from your schedule.`,
+        caregiver: `${patientName} has removed ${medicationName} from their medication schedule.`
+      }
+    };
+
+    // User notification
+    notifications.push({
+      user_id: userId,
+      title: `📋 Medication ${changeType.charAt(0).toUpperCase() + changeType.slice(1)}`,
+      message: actionMessages[changeType].user + (details ? ` ${details}` : ''),
+      type: 'medication_changed',
+      scheduled_for: new Date().toISOString(),
+      status: 'pending',
+      channels: JSON.stringify(['push'])
+    });
+
+    // Caregiver notifications
+    if (caregivers && caregivers.length > 0) {
+      for (const caregiver of caregivers) {
+        notifications.push({
+          user_id: userId,
+          title: `📋 Patient Medication ${changeType.charAt(0).toUpperCase() + changeType.slice(1)}`,
+          message: actionMessages[changeType].caregiver + (details ? ` ${details}` : ''),
+          type: 'caregiver_notification',
+          scheduled_for: new Date().toISOString(),
+          status: 'pending',
+          channels: JSON.stringify(['push', 'email']),
+          caregiver_id: caregiver.id
+        });
+      }
+    }
+
+    // Insert notifications
+    const { error } = await supabase
+      .from('notifications')
+      .insert(notifications);
+
+    if (error) {
+      console.error('Error creating medication change notifications:', error);
+      return false;
+    }
+
+    // Send immediately
+    await sendPendingNotifications();
+    return true;
+  } catch (error) {
+    console.error('Error in notifyMedicationChanged:', error);
+    return false;
+  }
+};
+
 export const notifyMissedMedication = async (
   userId: string,
   medicationName: string,
@@ -400,7 +485,7 @@ if (typeof window !== 'undefined') {
 
 const playNotificationSound = () => {
   try {
-    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBziN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAo7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucKvt1H8xBiWAyeriw2UcBziE2/LNeSsFJHzA7+CZREY6gNf0x4A0CtjrxmUcBziN2/L');
+    const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjiN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAo7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucKvt1H8xBiWAyeriw2UcBziE2/LNeSsFJHzA7+CZREY6gNf0x4A0CtjrxmUcBziN2/L');
     audio.volume = 0.3;
     audio.play().catch(e => console.log('Audio play failed:', e));
   } catch (error) {
