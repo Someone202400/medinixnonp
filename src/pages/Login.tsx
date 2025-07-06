@@ -29,8 +29,13 @@ const Login = () => {
     const { error } = await signIn(email, password);
     
     if (error) {
+      console.log('Login error:', error.message);
+      
       // Check if error is related to email confirmation
-      if (error.message.includes('Email not confirmed') || error.message.includes('signup_disabled')) {
+      if (error.message.includes('Email not confirmed') || 
+          error.message.includes('signup_disabled') ||
+          error.message.includes('email_not_confirmed') ||
+          error.message.includes('confirmation')) {
         setShowEmailConfirmation(true);
       }
       setIsLoading(false);
@@ -135,8 +140,9 @@ const Login = () => {
                 <Mail className="h-6 w-6 text-blue-600" />
               </div>
             </div>
-            <DialogTitle className="text-center">Check your email</DialogTitle>
+            <DialogTitle className="text-center">Please Confirm Your Email</DialogTitle>
             <DialogDescription className="text-center">
+              You need to confirm your email address before you can sign in. 
               We've sent a confirmation link to <strong>{email}</strong>
             </DialogDescription>
           </DialogHeader>
@@ -145,17 +151,30 @@ const Login = () => {
               <div className="flex items-start space-x-3">
                 <CheckCircle className="h-5 w-5 text-blue-600 mt-0.5" />
                 <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Please check your email and click the confirmation link to continue.</p>
-                  <p>If you don't see the email, check your spam folder.</p>
+                  <p className="font-medium mb-1">Check your email and click the confirmation link to continue.</p>
+                  <p>If you don't see the email, check your spam folder or try signing up again.</p>
                 </div>
               </div>
             </div>
-            <Button 
-              onClick={() => setShowEmailConfirmation(false)} 
-              className="w-full"
-            >
-              Got it
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowEmailConfirmation(false)} 
+                className="flex-1"
+                variant="outline"
+              >
+                Got it
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowEmailConfirmation(false);
+                  // Navigate to register page to resend confirmation
+                  window.location.href = '/register';
+                }}
+                className="flex-1"
+              >
+                Resend Email
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
