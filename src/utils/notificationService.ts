@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { addMinutes, isAfter } from 'date-fns';
 
@@ -78,10 +77,14 @@ export const checkForMissedMedications = async () => {
 
 const createMissedMedicationNotification = async (userId: string, medicationLog: any) => {
   try {
+    // Safely convert medication data to strings
+    const medicationName = String(medicationLog.medications?.name || 'medication');
+    const medicationDosage = String(medicationLog.medications?.dosage || '');
+    
     const notification = {
       user_id: userId,
       title: 'Missed Medication',
-      message: `You missed your ${medicationLog.medications?.name} (${medicationLog.medications?.dosage}) scheduled for ${new Date(medicationLog.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
+      message: `You missed your ${medicationName} (${medicationDosage}) scheduled for ${new Date(medicationLog.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`,
       type: 'missed_medication',
       scheduled_for: new Date().toISOString(),
       channels: JSON.stringify(['push'])
@@ -120,7 +123,9 @@ const notifyCaregiversAboutMissedMedication = async (userId: string, medicationL
       .single();
 
     const patientName = profile?.full_name || profile?.email || 'Patient';
-    const medicationName = medicationLog.medications?.name || 'medication';
+    // Safely convert medication data to strings
+    const medicationName = String(medicationLog.medications?.name || 'medication');
+    const medicationDosage = String(medicationLog.medications?.dosage || '');
     const scheduledTime = new Date(medicationLog.scheduled_time).toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit' 
@@ -130,7 +135,7 @@ const notifyCaregiversAboutMissedMedication = async (userId: string, medicationL
     const notifications = caregivers.map(caregiver => ({
       user_id: userId,
       title: 'Missed Medication Alert',
-      message: `${patientName} missed their ${medicationName} (${medicationLog.medications?.dosage}) scheduled for ${scheduledTime}.`,
+      message: `${patientName} missed their ${medicationName} (${medicationDosage}) scheduled for ${scheduledTime}.`,
       type: 'missed_medication_caregiver',
       scheduled_for: new Date().toISOString(),
       channels: JSON.stringify(['email']),
@@ -351,8 +356,8 @@ export const scheduleMedicationReminders = async (userId: string) => {
 
       if (isAfter(reminderTime, now)) {
         // Fix: Convert JSON values to strings safely
-        const medicationName = typeof log.medications?.name === 'string' ? log.medications.name : String(log.medications?.name || 'medication');
-        const medicationDosage = typeof log.medications?.dosage === 'string' ? log.medications.dosage : String(log.medications?.dosage || '');
+        const medicationName = String(log.medications?.name || 'medication');
+        const medicationDosage = String(log.medications?.dosage || '');
         
         const notification = {
           user_id: userId,
