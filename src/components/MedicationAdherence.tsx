@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, Calendar, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isToday, parseISO } from 'date-fns';
+import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isToday, parseISO, subDays } from 'date-fns';
 
 interface AdherenceData {
   totalScheduled: number;
@@ -42,7 +42,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
   const [loading, setLoading] = useState(true);
 
   const calculateAdherence = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
 
     try {
       const now = new Date();
@@ -61,9 +64,13 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         .select('*')
         .eq('user_id', user.id)
         .lt('scheduled_time', now.toISOString()) // Only past medications
-        .order('scheduled_time', { ascending: false });
+        .order('scheduled_time', { ascending: false })
+        .limit(1000); // Add reasonable limit to prevent performance issues
 
-      if (allLogsError) throw allLogsError;
+      if (allLogsError) {
+        console.error('Error fetching all logs:', allLogsError);
+        throw allLogsError;
+      }
 
       // Get today's logs (only past scheduled times)
       const { data: todayLogs, error: todayError } = await supabase
@@ -74,7 +81,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         .lt('scheduled_time', now.toISOString()) // Only past medications for today
         .lte('scheduled_time', todayEnd.toISOString());
 
-      if (todayError) throw todayError;
+      if (todayError) {
+        console.error('Error fetching today logs:', todayError);
+        throw todayError;
+      }
 
       // Get weekly logs (only past scheduled times)
       const { data: weeklyLogs, error: weeklyError } = await supabase
@@ -85,7 +95,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         .lt('scheduled_time', now.toISOString()) // Only past medications this week
         .lte('scheduled_time', weekEnd.toISOString());
 
-      if (weeklyError) throw weeklyError;
+      if (weeklyError) {
+        console.error('Error fetching weekly logs:', weeklyError);
+        throw weeklyError;
+      }
 
       // Get monthly logs (only past scheduled times)
       const { data: monthlyLogs, error: monthlyError } = await supabase
@@ -96,7 +109,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         .lt('scheduled_time', now.toISOString()) // Only past medications this month
         .lte('scheduled_time', monthEnd.toISOString());
 
-      if (monthlyError) throw monthlyError;
+      if (monthlyError) {
+        console.error('Error fetching monthly logs:', monthlyError);
+        throw monthlyError;
+      }
 
       // Calculate metrics - only count medications that were scheduled in the past
       const totalScheduled = allLogs?.length || 0;
@@ -116,24 +132,19 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
       const todayTaken = todayLogs?.filter(log => log.status === 'taken').length || 0;
       const todayMissed = todayLogs?.filter(log => log.status === 'missed').length || 0;
 
-      // Calculate streak (consecutive days with 100% adherence)
+      // Calculate streak (consecutive days with 100% adherence) - Fixed to prevent infinite loop
       let streak = 0;
       const sortedLogs = allLogs?.sort((a, b) => new Date(b.scheduled_time).getTime() - new Date(a.scheduled_time).getTime()) || [];
       
-      let currentDate = new Date();
-      currentDate.setHours(23, 59, 59, 999);
+      // Start from yesterday to avoid counting today if it's not complete
+      let currentDate = subDays(new Date(), 1);
+      const maxDaysToCheck = 30; // Limit to prevent infinite loops
       
-      while (streak < 30) { // Max 30 days to prevent infinite loops
+      for (let dayCount = 0; dayCount < maxDaysToCheck; dayCount++) {
         const dayStart = new Date(currentDate);
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(currentDate);
         dayEnd.setHours(23, 59, 59, 999);
-        
-        // Only consider days that have passed
-        if (dayEnd > now) {
-          currentDate.setDate(currentDate.getDate() - 1);
-          continue;
-        }
         
         const dayLogs = sortedLogs.filter(log => {
           const logDate = new Date(log.scheduled_time);
@@ -141,8 +152,8 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         });
         
         if (dayLogs.length === 0) {
-          // No medications scheduled for this day, continue
-          currentDate.setDate(currentDate.getDate() - 1);
+          // No medications scheduled for this day, continue to previous day
+          currentDate = subDays(currentDate, 1);
           continue;
         }
         
@@ -152,10 +163,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         if (dayAdherence === 1) {
           streak++;
         } else {
-          break;
+          break; // Streak is broken
         }
         
-        currentDate.setDate(currentDate.getDate() - 1);
+        currentDate = subDays(currentDate, 1);
       }
 
       setAdherenceData({
@@ -173,6 +184,19 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
     } catch (error) {
       console.error('Error calculating adherence:', error);
+      // Set safe default values on error
+      setAdherenceData({
+        totalScheduled: 0,
+        totalTaken: 0,
+        totalMissed: 0,
+        adherencePercentage: 0,
+        weeklyAdherence: 0,
+        monthlyAdherence: 0,
+        streak: 0,
+        todayScheduled: 0,
+        todayTaken: 0,
+        todayMissed: 0
+      });
     } finally {
       setLoading(false);
     }

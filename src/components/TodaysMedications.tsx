@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,17 +33,21 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
   useEffect(() => {
     if (user) {
       fetchTodaysMedications();
-      const interval = setInterval(fetchTodaysMedications, 30000); // Refresh every 30 seconds
+      // Reduce frequency to prevent excessive API calls
+      const interval = setInterval(fetchTodaysMedications, 2 * 60 * 1000); // 2 minutes instead of 30 seconds
       return () => clearInterval(interval);
     }
   }, [user]);
 
   const fetchTodaysMedications = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      if (user?.id) {
-        // Generate today's schedule first
-        await generateDailyMedicationSchedule(user.id, new Date());
-      }
+      // Generate today's schedule first
+      await generateDailyMedicationSchedule(user.id, new Date());
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -55,13 +60,16 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
           *,
           medications (name, dosage)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .gte('scheduled_time', today.toISOString())
         .lt('scheduled_time', tomorrow.toISOString())
         .in('status', ['pending', 'taken'])
         .order('scheduled_time', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching today\'s medications:', error);
+        throw error;
+      }
 
       const medications: TodaysMedication[] = logs?.map(log => ({
         id: log.id,
@@ -75,6 +83,8 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
       setTodaysMeds(medications);
     } catch (error) {
       console.error('Error fetching today\'s medications:', error);
+      // Set empty array on error to prevent crashes
+      setTodaysMeds([]);
     } finally {
       setLoading(false);
     }
@@ -128,7 +138,7 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
 
   const playNotificationSound = () => {
     try {
-      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjiN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAY7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucK' + '0BAD4AAABMZmFjdAAAAAAAFAAAAA==');
+      const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmMcBjiN2/LNeSsFJHbE8d2UQgwaXbXq66hWFAlFnt/yv2UdBzl+1vLLfCwGI3zE7+OZRAY7gdf0xH4xBiV+yOvXfzIIIYDJ7+CWQAofWaTg7qtqMgAucK');
       audio.volume = 0.3;
       audio.play().catch(e => console.log('Audio play failed:', e));
     } catch (error) {
@@ -137,29 +147,39 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
   };
 
   const getTimeDisplay = (scheduledTime: string) => {
-    const date = parseISO(scheduledTime);
-    return format(date, 'h:mm a');
+    try {
+      const date = parseISO(scheduledTime);
+      return format(date, 'h:mm a');
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid time';
+    }
   };
 
   const getStatusBadge = (medication: TodaysMedication) => {
     const now = new Date();
-    const scheduledTime = parseISO(medication.scheduled_time);
+    try {
+      const scheduledTime = parseISO(medication.scheduled_time);
 
-    if (medication.status === 'taken') {
-      return <Badge className="bg-green-100 text-green-700 border-green-300">✓ Taken</Badge>;
-    }
+      if (medication.status === 'taken') {
+        return <Badge className="bg-green-100 text-green-700 border-green-300">✓ Taken</Badge>;
+      }
 
-    const timeDiff = scheduledTime.getTime() - now.getTime();
-    const minutesUntil = Math.floor(timeDiff / (1000 * 60));
+      const timeDiff = scheduledTime.getTime() - now.getTime();
+      const minutesUntil = Math.floor(timeDiff / (1000 * 60));
 
-    if (minutesUntil < -30) {
-      return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">⚠ Overdue</Badge>;
-    } else if (minutesUntil < 0) {
-      return <Badge className="bg-orange-100 text-orange-700 border-orange-300">⏰ Due Now</Badge>;
-    } else if (minutesUntil <= 30) {
-      return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">🔔 Due Soon</Badge>;
-    } else {
-      return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">📅 Scheduled</Badge>;
+      if (minutesUntil < -30) {
+        return <Badge variant="destructive" className="bg-red-100 text-red-700 border-red-300">⚠ Overdue</Badge>;
+      } else if (minutesUntil < 0) {
+        return <Badge className="bg-orange-100 text-orange-700 border-orange-300">⏰ Due Now</Badge>;
+      } else if (minutesUntil <= 30) {
+        return <Badge className="bg-yellow-100 text-yellow-700 border-yellow-300">🔔 Due Soon</Badge>;
+      } else {
+        return <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">📅 Scheduled</Badge>;
+      }
+    } catch (error) {
+      console.error('Error getting status badge:', error);
+      return <Badge variant="outline">Status Unknown</Badge>;
     }
   };
 

@@ -33,19 +33,23 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
   useEffect(() => {
     if (user) {
       fetchUpcomingMedications();
-      const interval = setInterval(fetchUpcomingMedications, 60000);
+      // Reduce frequency to prevent excessive API calls
+      const interval = setInterval(fetchUpcomingMedications, 5 * 60 * 1000); // 5 minutes instead of 1 minute
       return () => clearInterval(interval);
     }
   }, [user, refreshTrigger]);
 
   const fetchUpcomingMedications = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      if (user?.id) {
-        // Generate schedules for next few days
-        for (let i = 0; i < 3; i++) {
-          const targetDate = addDays(new Date(), i);
-          await generateDailyMedicationSchedule(user.id, targetDate);
-        }
+      // Generate schedules for next few days
+      for (let i = 0; i < 3; i++) {
+        const targetDate = addDays(new Date(), i);
+        await generateDailyMedicationSchedule(user.id, targetDate);
       }
 
       const now = new Date();
@@ -62,14 +66,17 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
           *,
           medications (name, dosage)
         `)
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .gte('scheduled_time', tomorrow.toISOString())
         .lte('scheduled_time', nextThreeDays.toISOString())
         .eq('status', 'pending')
         .order('scheduled_time', { ascending: true })
         .limit(15);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching upcoming medications:', error);
+        throw error;
+      }
 
       const schedules: MedicationSchedule[] = logs?.map(log => ({
         id: log.id,
@@ -84,38 +91,54 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
       setUpcomingMeds(schedules);
     } catch (error) {
       console.error('Error fetching upcoming medications:', error);
+      // Set empty array on error to prevent crashes
+      setUpcomingMeds([]);
     } finally {
       setLoading(false);
     }
   };
 
   const getTimeDisplay = (scheduledTime: string) => {
-    const date = parseISO(scheduledTime);
-    if (isToday(date)) {
-      return format(date, 'h:mm a');
-    } else if (isTomorrow(date)) {
-      return `Tomorrow ${format(date, 'h:mm a')}`;
-    } else {
-      return format(date, 'MMM d, h:mm a');
+    try {
+      const date = parseISO(scheduledTime);
+      if (isToday(date)) {
+        return format(date, 'h:mm a');
+      } else if (isTomorrow(date)) {
+        return `Tomorrow ${format(date, 'h:mm a')}`;
+      } else {
+        return format(date, 'MMM d, h:mm a');
+      }
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid time';
     }
   };
 
   const getDateGroup = (scheduledTime: string) => {
-    const date = parseISO(scheduledTime);
-    if (isTomorrow(date)) {
-      return 'Tomorrow';
-    } else {
-      return format(date, 'EEEE, MMM d');
+    try {
+      const date = parseISO(scheduledTime);
+      if (isTomorrow(date)) {
+        return 'Tomorrow';
+      } else {
+        return format(date, 'EEEE, MMM d');
+      }
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid date';
     }
   };
 
   // Group medications by date
   const groupedMeds = upcomingMeds.reduce((groups, med) => {
-    const dateGroup = getDateGroup(med.scheduled_time);
-    if (!groups[dateGroup]) {
-      groups[dateGroup] = [];
+    try {
+      const dateGroup = getDateGroup(med.scheduled_time);
+      if (!groups[dateGroup]) {
+        groups[dateGroup] = [];
+      }
+      groups[dateGroup].push(med);
+    } catch (error) {
+      console.error('Error grouping medication:', error);
     }
-    groups[dateGroup].push(med);
     return groups;
   }, {} as Record<string, MedicationSchedule[]>);
 
@@ -164,7 +187,9 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-blue-600">{format(parseISO(schedule.scheduled_time), 'h:mm a')}</p>
+                        <p className="font-semibold text-blue-600">
+                          {format(parseISO(schedule.scheduled_time), 'h:mm a')}
+                        </p>
                         <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
                           📅 Scheduled
                         </Badge>
