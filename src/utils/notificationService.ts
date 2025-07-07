@@ -402,11 +402,11 @@ export const sendPendingNotifications = async () => {
 
     // Group notifications by type for processing
     const pushNotifications = pendingNotifications.filter(n => 
-      n.channels && JSON.parse(n.channels).includes('push')
+      n.channels && JSON.parse(String(n.channels)).includes('push')
     );
     
     const emailNotifications = pendingNotifications.filter(n => 
-      n.channels && JSON.parse(n.channels).includes('email') && n.caregiver_id
+      n.channels && JSON.parse(String(n.channels)).includes('email') && n.caregiver_id
     );
 
     // Send push notifications (browser notifications)

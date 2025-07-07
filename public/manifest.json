@@ -2,30 +2,51 @@
 {
   "name": "MedCare - Medication Companion",
   "short_name": "MedCare",
-  "description": "Advanced medication management platform with smart reminders and health tracking",
-  "start_url": "/",
+  "description": "Advanced medication management platform with smart reminders, symptom checker, and comprehensive health tracking",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
   "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/favicon.ico",
       "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon",
+      "purpose": "maskable"
     }
   ],
-  "categories": ["health", "medical", "lifestyle"],
+  "categories": ["health", "medical", "lifestyle", "productivity"],
   "screenshots": [
     {
       "src": "/screenshot1.png",
       "type": "image/png",
-      "sizes": "1280x720"
+      "sizes": "1280x720",
+      "form_factor": "wide"
     }
+  ],
+  "features": [
+    "offline-functionality",
+    "push-notifications",
+    "medication-reminders",
+    "symptom-tracking"
   ],
   "permissions": [
     "notifications",
     "background-sync"
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }

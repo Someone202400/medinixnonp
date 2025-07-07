@@ -21,12 +21,26 @@
     <!-- PWA and notification support -->
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#3b82f6" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#3b82f6" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e40af" />
     
-    <!-- Notification permission meta -->
+    <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="MedCare" />
+    <meta name="application-name" content="MedCare" />
+    <meta name="msapplication-TileColor" content="#3b82f6" />
+    <meta name="msapplication-config" content="none" />
+    
+    <!-- iOS specific -->
+    <meta name="apple-touch-fullscreen" content="yes" />
+    <link rel="apple-touch-icon" href="/favicon.ico" />
+    <link rel="apple-touch-startup-image" href="/favicon.ico" />
+    
+    <!-- Android specific -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
   </head>
 
   <body>
