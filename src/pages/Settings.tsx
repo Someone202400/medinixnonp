@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Bell, Shield, Palette, Mail, Save, Lock, Eye, Trash2, Download, FileText } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Palette, Mail, Save, Lock, Eye, Trash2, Download, FileText, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/dataExport';
 import CaregiverManagement from '@/components/CaregiverManagement';
 import SystemTest from '@/components/SystemTest';
+import { useTranslation } from 'react-i18next';
+import { supportedLanguages } from '@/i18n';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface NotificationPreferences {
   push: boolean;
@@ -31,6 +34,7 @@ interface ExtendedProfile {
 const Settings = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [profile, setProfile] = useState<ExtendedProfile>({
@@ -301,6 +305,36 @@ const Settings = () => {
                      className="data-[state=checked]:bg-amber-500"
                    />
                  </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Language Settings */}
+          <Card className="bg-gradient-to-br from-white/90 to-green-50/70 backdrop-blur-xl border-2 border-green-200/30 shadow-2xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-green-600 to-teal-600 bg-clip-text text-transparent">
+                <Globe className="h-6 w-6 text-green-600" />
+                Language & Localization
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-gray-700 font-semibold">Select Language</Label>
+                <Select value={i18n.language} onValueChange={(value) => i18n.changeLanguage(value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Choose language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportedLanguages.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code}>
+                        <span className="flex items-center gap-2">
+                          <span>{lang.flag}</span>
+                          <span>{lang.name}</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>

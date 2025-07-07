@@ -20,6 +20,8 @@ import {
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
+import CaregiverManagement from '@/components/CaregiverManagement';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -168,18 +170,22 @@ const Dashboard = () => {
                   <button
                     key={index}
                     onClick={action.action}
-                    className="p-4 rounded-xl bg-gradient-to-r hover:shadow-lg transition-all duration-200 text-left group"
+                    className="group p-6 rounded-2xl bg-gradient-to-br hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-                      background: `linear-gradient(135deg, ${action.color.split(' ')[1]}, ${action.color.split(' ')[3]})`
+                      background: `linear-gradient(135deg, ${action.color.split(' ')[1].replace('from-', '')}, ${action.color.split(' ')[3].replace('to-', '')})`
                     }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <action.icon className="h-5 w-5 text-white" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                        <action.icon className="h-7 w-7 text-white drop-shadow-lg" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-white">{action.title}</h3>
-                        <p className="text-white/80 text-sm">{action.description}</p>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-white text-lg mb-1 group-hover:text-white/90 transition-colors">
+                          {action.title}
+                        </h3>
+                        <p className="text-white/85 text-sm leading-relaxed group-hover:text-white/75 transition-colors">
+                          {action.description}
+                        </p>
                       </div>
                     </div>
                   </button>
@@ -214,6 +220,19 @@ const Dashboard = () => {
             </Card>
           </div>
         </div>
+
+        {/* Caregiver Management Dialog */}
+        <Dialog open={showCaregiverDialog} onOpenChange={setShowCaregiverDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Manage Caregivers
+              </DialogTitle>
+            </DialogHeader>
+            <CaregiverManagement />
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
