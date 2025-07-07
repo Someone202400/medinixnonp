@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Painel MedCare",
+    "welcome": "Bem-vindo de volta",
+    "quickActions": "Ações Rápidas",
+    "systemStatus": "Status do Sistema"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Adicionar Medicamento",
+      "description": "Adicionar um novo medicamento ao seu cronograma"
+    },
+    "symptomChecker": {
+      "title": "Verificador de Sintomas IA",
+      "description": "Avaliação avançada de saúde com IA"
+    },
+    "medicationLibrary": {
+      "title": "Biblioteca de Medicamentos",
+      "description": "Navegar informações sobre medicamentos"
+    },
+    "contactDoctor": {
+      "title": "Contatar Médico",
+      "description": "Entrar em contato com profissionais de saúde"
+    },
+    "manageCaregivers": {
+      "title": "Gerenciar Cuidadores",
+      "description": "Adicionar e gerenciar seus cuidadores"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "Gerencie sua conta e preferências",
+    "profile": "Informações do Perfil",
+    "notifications": "Preferências de Notificação",
+    "language": "Idioma e Localização",
+    "privacy": "Privacidade e Segurança",
+    "account": "Gerenciamento de Conta"
+  },
+  "symptomChecker": {
+    "title": "Verificador de Sintomas IA",
+    "description": "Descreva seus sintomas e deixe nossa IA fornecer insights",
+    "enterSymptoms": "Digite seus sintomas",
+    "placeholder": "Descreva como você está se sentindo, qualquer dor, desconforto ou mudanças que você notou...",
+    "analyze": "Analisar Sintomas",
+    "analyzing": "Analisando seus sintomas...",
+    "disclaimer": "Este verificador de sintomas é apenas para fins informativos e não deve substituir o aconselhamento médico profissional."
+  },
+  "notifications": {
+    "push": "Notificações Push",
+    "email": "Notificações por Email",
+    "weeklyReports": "Relatórios Semanais",
+    "testNotifications": "Testar Notificações"
+  },
+  "common": {
+    "save": "Salvar Alterações",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "loading": "Carregando...",
+    "signOut": "Sair",
+    "backToDashboard": "Voltar ao Painel"
+  }
+}

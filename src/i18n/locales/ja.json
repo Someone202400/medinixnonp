@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "MedCare ダッシュボード",
+    "welcome": "おかえりなさい",
+    "quickActions": "クイックアクション",
+    "systemStatus": "システムステータス"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "薬を追加",
+      "description": "スケジュールに新しい薬を追加"
+    },
+    "symptomChecker": {
+      "title": "AI症状チェッカー",
+      "description": "高度なAI健康評価"
+    },
+    "medicationLibrary": {
+      "title": "薬物ライブラリ",
+      "description": "薬物情報を閲覧"
+    },
+    "contactDoctor": {
+      "title": "医師に連絡",
+      "description": "医療提供者に連絡を取る"
+    },
+    "manageCaregivers": {
+      "title": "介護者を管理",
+      "description": "介護者を追加・管理"
+    }
+  },
+  "settings": {
+    "title": "設定",
+    "subtitle": "アカウントと設定を管理",
+    "profile": "プロフィール情報",
+    "notifications": "通知設定",
+    "language": "言語とローカライゼーション",
+    "privacy": "プライバシーとセキュリティ",
+    "account": "アカウント管理"
+  },
+  "symptomChecker": {
+    "title": "AI症状チェッカー",
+    "description": "症状を説明し、AIに洞察を提供してもらいましょう",
+    "enterSymptoms": "症状を入力",
+    "placeholder": "気分、痛み、不快感、または気づいた変化について説明してください...",
+    "analyze": "症状を分析",
+    "analyzing": "症状を分析中...",
+    "disclaimer": "この症状チェッカーは情報提供のみを目的としており、専門的な医療アドバイスに代わるものではありません。"
+  },
+  "notifications": {
+    "push": "プッシュ通知",
+    "email": "メール通知",
+    "weeklyReports": "週次レポート",
+    "testNotifications": "通知をテスト"
+  },
+  "common": {
+    "save": "変更を保存",
+    "cancel": "キャンセル",
+    "delete": "削除",
+    "edit": "編集",
+    "loading": "読み込み中...",
+    "signOut": "サインアウト",
+    "backToDashboard": "ダッシュボードに戻る"
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Dashboard MedCare",
+    "welcome": "Bentornato",
+    "quickActions": "Azioni Rapide",
+    "systemStatus": "Stato del Sistema"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Aggiungi Farmaco",
+      "description": "Aggiungi un nuovo farmaco al tuo programma"
+    },
+    "symptomChecker": {
+      "title": "Controllo Sintomi IA",
+      "description": "Valutazione avanzata della salute con IA"
+    },
+    "medicationLibrary": {
+      "title": "Biblioteca Farmaci",
+      "description": "Sfoglia informazioni sui farmaci"
+    },
+    "contactDoctor": {
+      "title": "Contatta Dottore",
+      "description": "Mettiti in contatto con fornitori di assistenza sanitaria"
+    },
+    "manageCaregivers": {
+      "title": "Gestisci Caregivers",
+      "description": "Aggiungi e gestisci i tuoi caregivers"
+    }
+  },
+  "settings": {
+    "title": "Impostazioni",
+    "subtitle": "Gestisci il tuo account e le preferenze",
+    "profile": "Informazioni Profilo",
+    "notifications": "Preferenze Notifiche",
+    "language": "Lingua e Localizzazione",
+    "privacy": "Privacy e Sicurezza",
+    "account": "Gestione Account"
+  },
+  "symptomChecker": {
+    "title": "Controllo Sintomi IA",
+    "description": "Descrivi i tuoi sintomi e lascia che la nostra IA fornisca informazioni",
+    "enterSymptoms": "Inserisci i tuoi sintomi",
+    "placeholder": "Descrivi come ti senti, eventuali dolori, fastidi o cambiamenti che hai notato...",
+    "analyze": "Analizza Sintomi",
+    "analyzing": "Analizzando i tuoi sintomi...",
+    "disclaimer": "Questo controllo sintomi è solo a scopo informativo e non dovrebbe sostituire il consiglio medico professionale."
+  },
+  "notifications": {
+    "push": "Notifiche Push",
+    "email": "Notifiche Email",
+    "weeklyReports": "Report Settimanali",
+    "testNotifications": "Testa Notifiche"
+  },
+  "common": {
+    "save": "Salva Modifiche",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "loading": "Caricamento...",
+    "signOut": "Disconnetti",
+    "backToDashboard": "Torna alla Dashboard"
+  }
+}

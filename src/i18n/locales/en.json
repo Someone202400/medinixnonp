@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "MedCare Dashboard",
+    "welcome": "Welcome back",
+    "quickActions": "Quick Actions",
+    "systemStatus": "System Status"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Add Medication",
+      "description": "Add a new medication to your schedule"
+    },
+    "symptomChecker": {
+      "title": "AI Symptom Checker",
+      "description": "Advanced AI health assessment"
+    },
+    "medicationLibrary": {
+      "title": "Medication Library",
+      "description": "Browse medication information"
+    },
+    "contactDoctor": {
+      "title": "Contact Doctor",
+      "description": "Get in touch with healthcare providers"
+    },
+    "manageCaregivers": {
+      "title": "Manage Caregivers",
+      "description": "Add and manage your caregivers"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your account and preferences",
+    "profile": "Profile Information",
+    "notifications": "Notification Preferences",
+    "language": "Language & Localization",
+    "privacy": "Privacy & Security",
+    "account": "Account Management"
+  },
+  "symptomChecker": {
+    "title": "AI Symptom Checker",
+    "description": "Describe your symptoms and let our AI provide insights",
+    "enterSymptoms": "Enter your symptoms",
+    "placeholder": "Describe how you're feeling, any pain, discomfort, or changes you've noticed...",
+    "analyze": "Analyze Symptoms",
+    "analyzing": "Analyzing your symptoms...",
+    "disclaimer": "This symptom checker is for informational purposes only and should not replace professional medical advice."
+  },
+  "notifications": {
+    "push": "Push Notifications",
+    "email": "Email Notifications", 
+    "weeklyReports": "Weekly Reports",
+    "testNotifications": "Test Notifications"
+  },
+  "common": {
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "signOut": "Sign Out",
+    "backToDashboard": "Back to Dashboard"
+  }
+}

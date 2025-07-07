@@ -289,17 +289,6 @@ const Settings = () => {
                    />
                  </div>
 
-                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border-2 border-green-200">
-                   <div>
-                     <h3 className="font-semibold text-green-800">📱 Push Notifications (PWA)</h3>
-                     <p className="text-sm text-green-700">Receive push notifications even when app is closed</p>
-                   </div>
-                   <Switch 
-                     checked={profile.push_notifications_enabled}
-                     onCheckedChange={(checked) => handleAdvancedNotificationChange('push_notifications_enabled', checked)}
-                     className="data-[state=checked]:bg-green-500"
-                   />
-                 </div>
 
                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl border-2 border-amber-200">
                    <div>

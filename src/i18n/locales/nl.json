@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "MedCare Dashboard",
+    "welcome": "Welkom terug",
+    "quickActions": "Snelle Acties",
+    "systemStatus": "Systeemstatus"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Medicijn Toevoegen",
+      "description": "Voeg een nieuw medicijn toe aan uw schema"
+    },
+    "symptomChecker": {
+      "title": "AI Symptoomchecker",
+      "description": "Geavanceerde AI-gezondheidsbeoordeling"
+    },
+    "medicationLibrary": {
+      "title": "Medicijnbibliotheek",
+      "description": "Bekijk medicijninformatie"
+    },
+    "contactDoctor": {
+      "title": "Contact Dokter",
+      "description": "Neem contact op met zorgverleners"
+    },
+    "manageCaregivers": {
+      "title": "Zorgverleners Beheren",
+      "description": "Voeg toe en beheer uw zorgverleners"
+    }
+  },
+  "settings": {
+    "title": "Instellingen",
+    "subtitle": "Beheer uw account en voorkeuren",
+    "profile": "Profielinformatie",
+    "notifications": "Meldingsvoorkeuren",
+    "language": "Taal en Lokalisatie",
+    "privacy": "Privacy en Beveiliging",
+    "account": "Accountbeheer"
+  },
+  "symptomChecker": {
+    "title": "AI Symptoomchecker",
+    "description": "Beschrijf uw symptomen en laat onze AI inzichten verstrekken",
+    "enterSymptoms": "Voer uw symptomen in",
+    "placeholder": "Beschrijf hoe u zich voelt, eventuele pijn, ongemak of veranderingen die u heeft opgemerkt...",
+    "analyze": "Symptomen Analyseren",
+    "analyzing": "Uw symptomen analyseren...",
+    "disclaimer": "Deze symptoomchecker is alleen voor informatieve doeleinden en mag geen professioneel medisch advies vervangen."
+  },
+  "notifications": {
+    "push": "Push Meldingen",
+    "email": "E-mail Meldingen",
+    "weeklyReports": "Wekelijkse Rapporten",
+    "testNotifications": "Test Meldingen"
+  },
+  "common": {
+    "save": "Wijzigingen Opslaan",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "edit": "Bewerken",
+    "loading": "Laden...",
+    "signOut": "Uitloggen",
+    "backToDashboard": "Terug naar Dashboard"
+  }
+}

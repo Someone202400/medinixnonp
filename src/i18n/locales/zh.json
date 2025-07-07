@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "MedCare 仪表板",
+    "welcome": "欢迎回来",
+    "quickActions": "快速操作",
+    "systemStatus": "系统状态"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "添加药物",
+      "description": "将新药物添加到您的日程"
+    },
+    "symptomChecker": {
+      "title": "AI 症状检查器",
+      "description": "高级AI健康评估"
+    },
+    "medicationLibrary": {
+      "title": "药物库",
+      "description": "浏览药物信息"
+    },
+    "contactDoctor": {
+      "title": "联系医生",
+      "description": "与医疗服务提供者取得联系"
+    },
+    "manageCaregivers": {
+      "title": "管理护理人员",
+      "description": "添加和管理您的护理人员"
+    }
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "管理您的账户和偏好",
+    "profile": "个人资料信息",
+    "notifications": "通知偏好",
+    "language": "语言和本地化",
+    "privacy": "隐私和安全",
+    "account": "账户管理"
+  },
+  "symptomChecker": {
+    "title": "AI 症状检查器",
+    "description": "描述您的症状，让我们的AI提供见解",
+    "enterSymptoms": "输入您的症状",
+    "placeholder": "描述您的感受，任何疼痛、不适或您注意到的变化...",
+    "analyze": "分析症状",
+    "analyzing": "正在分析您的症状...",
+    "disclaimer": "此症状检查器仅供参考，不应替代专业医疗建议。"
+  },
+  "notifications": {
+    "push": "推送通知",
+    "email": "电子邮件通知",
+    "weeklyReports": "周报告",
+    "testNotifications": "测试通知"
+  },
+  "common": {
+    "save": "保存更改",
+    "cancel": "取消",
+    "delete": "删除",
+    "edit": "编辑",
+    "loading": "加载中...",
+    "signOut": "登出",
+    "backToDashboard": "返回仪表板"
+  }
+}

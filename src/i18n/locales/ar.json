@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "لوحة تحكم MedCare",
+    "welcome": "مرحباً بعودتك",
+    "quickActions": "الإجراءات السريعة",
+    "systemStatus": "حالة النظام"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "إضافة دواء",
+      "description": "إضافة دواء جديد إلى جدولك"
+    },
+    "symptomChecker": {
+      "title": "فاحص الأعراض بالذكاء الاصطناعي",
+      "description": "تقييم صحي متقدم بالذكاء الاصطناعي"
+    },
+    "medicationLibrary": {
+      "title": "مكتبة الأدوية",
+      "description": "تصفح معلومات الأدوية"
+    },
+    "contactDoctor": {
+      "title": "اتصل بالطبيب",
+      "description": "تواصل مع مقدمي الرعاية الصحية"
+    },
+    "manageCaregivers": {
+      "title": "إدارة مقدمي الرعاية",
+      "description": "إضافة وإدارة مقدمي الرعاية الخاص بك"
+    }
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "subtitle": "إدارة حسابك وتفضيلاتك",
+    "profile": "معلومات الملف الشخصي",
+    "notifications": "تفضيلات الإشعارات",
+    "language": "اللغة والترجمة",
+    "privacy": "الخصوصية والأمان",
+    "account": "إدارة الحساب"
+  },
+  "symptomChecker": {
+    "title": "فاحص الأعراض بالذكاء الاصطناعي",
+    "description": "صف أعراضك ودع الذكاء الاصطناعي يقدم رؤى",
+    "enterSymptoms": "أدخل أعراضك",
+    "placeholder": "صف كيف تشعر، أي ألم أو انزعاج أو تغييرات لاحظتها...",
+    "analyze": "تحليل الأعراض",
+    "analyzing": "تحليل أعراضك...",
+    "disclaimer": "فاحص الأعراض هذا للأغراض الإعلامية فقط ولا يجب أن يحل محل المشورة الطبية المهنية."
+  },
+  "notifications": {
+    "push": "الإشعارات الفورية",
+    "email": "إشعارات البريد الإلكتروني",
+    "weeklyReports": "التقارير الأسبوعية",
+    "testNotifications": "اختبار الإشعارات"
+  },
+  "common": {
+    "save": "حفظ التغييرات",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تحرير",
+    "loading": "جاري التحميل...",
+    "signOut": "تسجيل الخروج",
+    "backToDashboard": "العودة للوحة التحكم"
+  }
+}

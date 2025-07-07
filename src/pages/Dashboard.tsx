@@ -28,6 +28,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [adherenceRefreshTrigger, setAdherenceRefreshTrigger] = useState(0);
   const [caregiverCount, setCaregiverCount] = useState(0);
+  const [showCaregiverDialog, setShowCaregiverDialog] = useState(false);
 
   // Start notification services when dashboard loads
   useEffect(() => {
@@ -98,8 +99,8 @@ const Dashboard = () => {
       title: 'Manage Caregivers',
       description: 'Add and manage your caregivers',
       icon: Users,
-      color: 'from-purple-500 to-indigo-500',
-      action: () => navigate('/settings')
+      color: 'from-indigo-500 to-purple-500',
+      action: () => setShowCaregiverDialog(true)
     }
   ];
 

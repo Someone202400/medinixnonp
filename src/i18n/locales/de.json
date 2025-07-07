@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "MedCare Dashboard",
+    "welcome": "Willkommen zurück",
+    "quickActions": "Schnellaktionen",
+    "systemStatus": "Systemstatus"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Medikament Hinzufügen",
+      "description": "Ein neues Medikament zu Ihrem Zeitplan hinzufügen"
+    },
+    "symptomChecker": {
+      "title": "KI-Symptomprüfer",
+      "description": "Erweiterte KI-Gesundheitsbewertung"
+    },
+    "medicationLibrary": {
+      "title": "Medikamentenbibliothek",
+      "description": "Medikamenteninformationen durchsuchen"
+    },
+    "contactDoctor": {
+      "title": "Arzt Kontaktieren",
+      "description": "Kontakt mit Gesundheitsdienstleistern aufnehmen"
+    },
+    "manageCaregivers": {
+      "title": "Pflegekräfte Verwalten",
+      "description": "Ihre Pflegekräfte hinzufügen und verwalten"
+    }
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "subtitle": "Verwalten Sie Ihr Konto und Ihre Einstellungen",
+    "profile": "Profilinformationen",
+    "notifications": "Benachrichtigungseinstellungen",
+    "language": "Sprache und Lokalisierung",
+    "privacy": "Datenschutz und Sicherheit",
+    "account": "Kontoverwaltung"
+  },
+  "symptomChecker": {
+    "title": "KI-Symptomprüfer",
+    "description": "Beschreiben Sie Ihre Symptome und lassen Sie unsere KI Einblicke gewähren",
+    "enterSymptoms": "Geben Sie Ihre Symptome ein",
+    "placeholder": "Beschreiben Sie, wie Sie sich fühlen, alle Schmerzen, Beschwerden oder Veränderungen, die Sie bemerkt haben...",
+    "analyze": "Symptome Analysieren",
+    "analyzing": "Analysiere Ihre Symptome...",
+    "disclaimer": "Dieser Symptomprüfer dient nur zu Informationszwecken und sollte nicht die professionelle medizinische Beratung ersetzen."
+  },
+  "notifications": {
+    "push": "Push-Benachrichtigungen",
+    "email": "E-Mail-Benachrichtigungen",
+    "weeklyReports": "Wöchentliche Berichte",
+    "testNotifications": "Benachrichtigungen Testen"
+  },
+  "common": {
+    "save": "Änderungen Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "loading": "Wird geladen...",
+    "signOut": "Abmelden",
+    "backToDashboard": "Zurück zum Dashboard"
+  }
+}

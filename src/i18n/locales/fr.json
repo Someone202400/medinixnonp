@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Tableau de Bord MedCare",
+    "welcome": "Bon retour",
+    "quickActions": "Actions Rapides",
+    "systemStatus": "État du Système"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Ajouter Médicament",
+      "description": "Ajouter un nouveau médicament à votre planning"
+    },
+    "symptomChecker": {
+      "title": "Vérificateur de Symptômes IA",
+      "description": "Évaluation avancée de santé par IA"
+    },
+    "medicationLibrary": {
+      "title": "Bibliothèque de Médicaments",
+      "description": "Parcourir les informations sur les médicaments"
+    },
+    "contactDoctor": {
+      "title": "Contacter le Docteur",
+      "description": "Entrer en contact avec les professionnels de santé"
+    },
+    "manageCaregivers": {
+      "title": "Gérer les Aidants",
+      "description": "Ajouter et gérer vos aidants"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez votre compte et préférences",
+    "profile": "Informations du Profil",
+    "notifications": "Préférences de Notification",
+    "language": "Langue et Localisation",
+    "privacy": "Confidentialité et Sécurité",
+    "account": "Gestion du Compte"
+  },
+  "symptomChecker": {
+    "title": "Vérificateur de Symptômes IA",
+    "description": "Décrivez vos symptômes et laissez notre IA fournir des informations",
+    "enterSymptoms": "Entrez vos symptômes",
+    "placeholder": "Décrivez comment vous vous sentez, toute douleur, inconfort ou changements que vous avez remarqués...",
+    "analyze": "Analyser les Symptômes",
+    "analyzing": "Analyse de vos symptômes...",
+    "disclaimer": "Ce vérificateur de symptômes est à des fins informatives uniquement et ne doit pas remplacer les conseils médicaux professionnels."
+  },
+  "notifications": {
+    "push": "Notifications Push",
+    "email": "Notifications par Email",
+    "weeklyReports": "Rapports Hebdomadaires",
+    "testNotifications": "Tester les Notifications"
+  },
+  "common": {
+    "save": "Sauvegarder les Changements",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "signOut": "Se Déconnecter",
+    "backToDashboard": "Retour au Tableau de Bord"
+  }
+}

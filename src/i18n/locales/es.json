@@ -1,0 +1,63 @@
+{
+  "dashboard": {
+    "title": "Panel de MedCare",
+    "welcome": "Bienvenido de nuevo",
+    "quickActions": "Acciones Rápidas",
+    "systemStatus": "Estado del Sistema"
+  },
+  "quickActions": {
+    "addMedication": {
+      "title": "Agregar Medicamento",
+      "description": "Agregar un nuevo medicamento a tu horario"
+    },
+    "symptomChecker": {
+      "title": "Verificador de Síntomas IA",
+      "description": "Evaluación avanzada de salud con IA"
+    },
+    "medicationLibrary": {
+      "title": "Biblioteca de Medicamentos",
+      "description": "Explorar información de medicamentos"
+    },
+    "contactDoctor": {
+      "title": "Contactar Doctor",
+      "description": "Ponerse en contacto con proveedores de salud"
+    },
+    "manageCaregivers": {
+      "title": "Gestionar Cuidadores",
+      "description": "Agregar y gestionar tus cuidadores"
+    }
+  },
+  "settings": {
+    "title": "Configuración",
+    "subtitle": "Gestiona tu cuenta y preferencias",
+    "profile": "Información del Perfil",
+    "notifications": "Preferencias de Notificación",
+    "language": "Idioma y Localización",
+    "privacy": "Privacidad y Seguridad",
+    "account": "Gestión de Cuenta"
+  },
+  "symptomChecker": {
+    "title": "Verificador de Síntomas IA",
+    "description": "Describe tus síntomas y deja que nuestra IA proporcione información",
+    "enterSymptoms": "Ingresa tus síntomas",
+    "placeholder": "Describe cómo te sientes, cualquier dolor, molestia o cambios que hayas notado...",
+    "analyze": "Analizar Síntomas",
+    "analyzing": "Analizando tus síntomas...",
+    "disclaimer": "Este verificador de síntomas es solo para fines informativos y no debe reemplazar el consejo médico profesional."
+  },
+  "notifications": {
+    "push": "Notificaciones Push",
+    "email": "Notificaciones por Email",
+    "weeklyReports": "Reportes Semanales",
+    "testNotifications": "Probar Notificaciones"
+  },
+  "common": {
+    "save": "Guardar Cambios",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "loading": "Cargando...",
+    "signOut": "Cerrar Sesión",
+    "backToDashboard": "Volver al Panel"
+  }
+}
