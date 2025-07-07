@@ -18,6 +18,7 @@ interface AdherenceData {
   streak: number;
   todayScheduled: number;
   todayTaken: number;
+  todayMissed: number;
 }
 
 interface MedicationAdherenceProps {
@@ -35,7 +36,8 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
     monthlyAdherence: 0,
     streak: 0,
     todayScheduled: 0,
-    todayTaken: 0
+    todayTaken: 0,
+    todayMissed: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -53,61 +55,66 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
       const todayEnd = new Date(now);
       todayEnd.setHours(23, 59, 59, 999);
 
-      // Get all medication logs for the user
+      // Get all medication logs for the user (only past scheduled times to avoid counting future medications)
       const { data: allLogs, error: allLogsError } = await supabase
         .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
+        .lt('scheduled_time', now.toISOString()) // Only past medications
         .order('scheduled_time', { ascending: false });
 
       if (allLogsError) throw allLogsError;
 
-      // Get today's logs
+      // Get today's logs (only past scheduled times)
       const { data: todayLogs, error: todayError } = await supabase
         .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('scheduled_time', todayStart.toISOString())
+        .lt('scheduled_time', now.toISOString()) // Only past medications for today
         .lte('scheduled_time', todayEnd.toISOString());
 
       if (todayError) throw todayError;
 
-      // Get weekly logs
+      // Get weekly logs (only past scheduled times)
       const { data: weeklyLogs, error: weeklyError } = await supabase
         .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('scheduled_time', weekStart.toISOString())
+        .lt('scheduled_time', now.toISOString()) // Only past medications this week
         .lte('scheduled_time', weekEnd.toISOString());
 
       if (weeklyError) throw weeklyError;
 
-      // Get monthly logs
+      // Get monthly logs (only past scheduled times)
       const { data: monthlyLogs, error: monthlyError } = await supabase
         .from('medication_logs')
         .select('*')
         .eq('user_id', user.id)
         .gte('scheduled_time', monthStart.toISOString())
+        .lt('scheduled_time', now.toISOString()) // Only past medications this month
         .lte('scheduled_time', monthEnd.toISOString());
 
       if (monthlyError) throw monthlyError;
 
-      // Calculate metrics
+      // Calculate metrics - only count medications that were scheduled in the past
       const totalScheduled = allLogs?.length || 0;
       const totalTaken = allLogs?.filter(log => log.status === 'taken').length || 0;
       const totalMissed = allLogs?.filter(log => log.status === 'missed').length || 0;
-      const adherencePercentage = totalScheduled > 0 ? Math.round((totalTaken / totalScheduled) * 100) : 0;
+      const adherencePercentage = totalScheduled > 0 ? Math.round((totalTaken / totalScheduled) * 100) : 100;
 
       const weeklyScheduled = weeklyLogs?.length || 0;
       const weeklyTaken = weeklyLogs?.filter(log => log.status === 'taken').length || 0;
-      const weeklyAdherence = weeklyScheduled > 0 ? Math.round((weeklyTaken / weeklyScheduled) * 100) : 0;
+      const weeklyAdherence = weeklyScheduled > 0 ? Math.round((weeklyTaken / weeklyScheduled) * 100) : 100;
 
       const monthlyScheduled = monthlyLogs?.length || 0;
       const monthlyTaken = monthlyLogs?.filter(log => log.status === 'taken').length || 0;
-      const monthlyAdherence = monthlyScheduled > 0 ? Math.round((monthlyTaken / monthlyScheduled) * 100) : 0;
+      const monthlyAdherence = monthlyScheduled > 0 ? Math.round((monthlyTaken / monthlyScheduled) * 100) : 100;
 
       const todayScheduled = todayLogs?.length || 0;
       const todayTaken = todayLogs?.filter(log => log.status === 'taken').length || 0;
+      const todayMissed = todayLogs?.filter(log => log.status === 'missed').length || 0;
 
       // Calculate streak (consecutive days with 100% adherence)
       let streak = 0;
@@ -121,6 +128,12 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(currentDate);
         dayEnd.setHours(23, 59, 59, 999);
+        
+        // Only consider days that have passed
+        if (dayEnd > now) {
+          currentDate.setDate(currentDate.getDate() - 1);
+          continue;
+        }
         
         const dayLogs = sortedLogs.filter(log => {
           const logDate = new Date(log.scheduled_time);
@@ -154,7 +167,8 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         monthlyAdherence,
         streak,
         todayScheduled,
-        todayTaken
+        todayTaken,
+        todayMissed
       });
 
     } catch (error) {
@@ -216,7 +230,7 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
     return { label: 'Needs Improvement', color: 'bg-red-500', textColor: 'text-red-700' };
   };
 
-  const todayAdherence = adherenceData.todayScheduled > 0 ? Math.round((adherenceData.todayTaken / adherenceData.todayScheduled) * 100) : 0;
+  const todayAdherence = adherenceData.todayScheduled > 0 ? Math.round((adherenceData.todayTaken / adherenceData.todayScheduled) * 100) : 100;
   const status = getAdherenceStatus(adherenceData.adherencePercentage);
 
   if (loading) {
@@ -272,7 +286,9 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
           </div>
           <Progress value={todayAdherence} className="h-2 mb-2" />
           <div className="flex justify-between text-sm text-green-700">
-            <span>{adherenceData.todayTaken} / {adherenceData.todayScheduled} medications taken</span>
+            <span>{adherenceData.todayTaken} taken</span>
+            <span>{adherenceData.todayMissed} missed</span>
+            <span>{adherenceData.todayScheduled} scheduled</span>
           </div>
         </div>
 
