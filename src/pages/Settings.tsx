@@ -297,12 +297,24 @@ const Settings = () => {
                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl border-2 border-amber-200">
                    <div>
                      <h3 className="font-semibold text-amber-800">📊 Weekly Reports</h3>
-                     <p className="text-sm text-amber-700">Receive weekly adherence reports to caregivers</p>
+                     <p className="text-sm text-amber-700">Receive weekly adherence reports via email and push notifications</p>
                    </div>
                    <Switch 
                      checked={profile.weekly_reports_enabled}
                      onCheckedChange={(checked) => handleAdvancedNotificationChange('weekly_reports_enabled', checked)}
                      className="data-[state=checked]:bg-amber-500"
+                   />
+                 </div>
+
+                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border-2 border-indigo-200">
+                   <div>
+                     <h3 className="font-semibold text-indigo-800">🔔 Push Notifications (PWA)</h3>
+                     <p className="text-sm text-indigo-700">Receive push notifications even when app is closed</p>
+                   </div>
+                   <Switch 
+                     checked={profile.push_notifications_enabled}
+                     onCheckedChange={(checked) => handleAdvancedNotificationChange('push_notifications_enabled', checked)}
+                     className="data-[state=checked]:bg-indigo-500"
                    />
                  </div>
               </div>
