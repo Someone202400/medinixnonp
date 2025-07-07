@@ -12,10 +12,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/dataExport';
+import CaregiverManagement from '@/components/CaregiverManagement';
+import SystemTest from '@/components/SystemTest';
 
 interface NotificationPreferences {
   push: boolean;
   email: boolean;
+}
+
+interface ExtendedProfile {
+  full_name: string;
+  email: string;
+  notification_preferences: NotificationPreferences;
+  push_notifications_enabled: boolean;
+  weekly_reports_enabled: boolean;
 }
 
 const Settings = () => {
@@ -23,13 +33,15 @@ const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
-  const [profile, setProfile] = useState({
+  const [profile, setProfile] = useState<ExtendedProfile>({
     full_name: '',
     email: '',
     notification_preferences: {
       push: true,
       email: true
-    } as NotificationPreferences
+    },
+    push_notifications_enabled: true,
+    weekly_reports_enabled: true
   });
 
   useEffect(() => {
@@ -65,7 +77,9 @@ const Settings = () => {
         setProfile({
           full_name: data.full_name || '',
           email: data.email || user?.email || '',
-          notification_preferences: preferences
+          notification_preferences: preferences,
+          push_notifications_enabled: data.push_notifications_enabled ?? true,
+          weekly_reports_enabled: data.weekly_reports_enabled ?? true
         });
       }
     } catch (error) {
@@ -87,7 +101,9 @@ const Settings = () => {
           id: user?.id,
           full_name: profile.full_name,
           email: profile.email,
-          notification_preferences: preferencesJson
+          notification_preferences: preferencesJson,
+          push_notifications_enabled: profile.push_notifications_enabled,
+          weekly_reports_enabled: profile.weekly_reports_enabled
         });
 
       if (error) throw error;
@@ -122,6 +138,13 @@ const Settings = () => {
         ...prev.notification_preferences,
         [type]: enabled
       }
+    }));
+  };
+
+  const handleAdvancedNotificationChange = (type: 'push_notifications_enabled' | 'weekly_reports_enabled', enabled: boolean) => {
+    setProfile(prev => ({
+      ...prev,
+      [type]: enabled
     }));
   };
 
@@ -254,17 +277,41 @@ const Settings = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
-                  <div>
-                    <h3 className="font-semibold text-purple-800">📧 Email Notifications</h3>
-                    <p className="text-sm text-purple-700">Receive notifications via email</p>
-                  </div>
-                  <Switch 
-                    checked={profile.notification_preferences.email}
-                    onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-                    className="data-[state=checked]:bg-purple-500"
-                  />
-                </div>
+                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+                   <div>
+                     <h3 className="font-semibold text-purple-800">📧 Email Notifications</h3>
+                     <p className="text-sm text-purple-700">Receive notifications via email</p>
+                   </div>
+                   <Switch 
+                     checked={profile.notification_preferences.email}
+                     onCheckedChange={(checked) => handleNotificationChange('email', checked)}
+                     className="data-[state=checked]:bg-purple-500"
+                   />
+                 </div>
+
+                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border-2 border-green-200">
+                   <div>
+                     <h3 className="font-semibold text-green-800">📱 Push Notifications (PWA)</h3>
+                     <p className="text-sm text-green-700">Receive push notifications even when app is closed</p>
+                   </div>
+                   <Switch 
+                     checked={profile.push_notifications_enabled}
+                     onCheckedChange={(checked) => handleAdvancedNotificationChange('push_notifications_enabled', checked)}
+                     className="data-[state=checked]:bg-green-500"
+                   />
+                 </div>
+
+                 <div className="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-yellow-50 rounded-xl border-2 border-amber-200">
+                   <div>
+                     <h3 className="font-semibold text-amber-800">📊 Weekly Reports</h3>
+                     <p className="text-sm text-amber-700">Receive weekly adherence reports to caregivers</p>
+                   </div>
+                   <Switch 
+                     checked={profile.weekly_reports_enabled}
+                     onCheckedChange={(checked) => handleAdvancedNotificationChange('weekly_reports_enabled', checked)}
+                     className="data-[state=checked]:bg-amber-500"
+                   />
+                 </div>
               </div>
             </CardContent>
           </Card>
@@ -337,6 +384,12 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* Caregiver Management */}
+          <CaregiverManagement />
+
+          {/* System Test */}
+          <SystemTest />
 
           {/* Account Actions */}
           <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">

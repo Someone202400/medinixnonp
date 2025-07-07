@@ -83,56 +83,120 @@ self.addEventListener('fetch', event => {
 
 // Handle push notifications
 self.addEventListener('push', event => {
-  if (event.data) {
-    const data = event.data.json();
-    
-    const options = {
-      body: data.body || 'You have a new medication reminder',
-      icon: '/favicon.ico',
-      badge: '/favicon.ico',
-      tag: data.tag || 'medication-reminder',
-      requireInteraction: true,
-      actions: [
-        {
-          action: 'taken',
-          title: 'Mark as Taken'
-        },
-        {
-          action: 'snooze',
-          title: 'Snooze 15 mins'
-        }
-      ]
+  console.log('Push notification received:', event);
+  
+  let data;
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (error) {
+    console.error('Error parsing push data:', error);
+    data = {
+      title: 'MedCare Reminder',
+      body: 'You have a new medication reminder'
     };
-
-    event.waitUntil(
-      self.registration.showNotification(data.title || 'MedCare Reminder', options)
-    );
   }
+  
+  const options = {
+    body: data.body || data.message || 'You have a new medication reminder',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    tag: data.tag || data.type || 'medication-reminder',
+    requireInteraction: true,
+    data: data.data || { url: '/dashboard' },
+    actions: [
+      {
+        action: 'taken',
+        title: 'Mark as Taken'
+      },
+      {
+        action: 'snooze',
+        title: 'Snooze 15 mins'
+      },
+      {
+        action: 'open',
+        title: 'Open App'
+      }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'MedCare Reminder', options)
+  );
 });
 
 // Handle notification clicks
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  console.log('Notification clicked:', event.action, event.notification.data);
+
+  const notificationData = event.notification.data || {};
+  const targetUrl = notificationData.url || '/dashboard';
 
   if (event.action === 'taken') {
     // Handle "Mark as Taken" action
-    console.log('Medication marked as taken');
+    console.log('Medication marked as taken via notification');
+    
+    // Send message to app to mark medication as taken
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        if (clients.length > 0) {
+          clients[0].postMessage({
+            type: 'MEDICATION_TAKEN',
+            notificationId: notificationData.notificationId,
+            medicationId: notificationData.medicationId
+          });
+          clients[0].focus();
+        } else {
+          self.clients.openWindow(targetUrl);
+        }
+      })
+    );
+    
   } else if (event.action === 'snooze') {
     // Handle snooze action
     console.log('Notification snoozed for 15 minutes');
+    
+    // Show snooze confirmation
+    self.registration.showNotification('Reminder Snoozed', {
+      body: 'We\'ll remind you again in 15 minutes',
+      icon: '/favicon.ico',
+      tag: 'snooze-confirmation',
+      requireInteraction: false
+    });
     
     // Schedule another notification in 15 minutes
     setTimeout(() => {
       self.registration.showNotification('Medication Reminder (Snoozed)', {
         body: 'Time to take your medication',
         icon: '/favicon.ico',
-        tag: 'medication-reminder-snooze'
+        tag: 'medication-reminder-snooze',
+        requireInteraction: true,
+        data: notificationData,
+        actions: [
+          { action: 'taken', title: 'Mark as Taken' },
+          { action: 'snooze', title: 'Snooze Again' }
+        ]
       });
     }, 15 * 60 * 1000); // 15 minutes
+    
   } else {
-    // Default action - open the app
+    // Default action or "open" action - open the app
     event.waitUntil(
-      clients.openWindow('/dashboard')
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        // Check if app is already open
+        const appClient = clients.find(client => 
+          client.url.includes(self.location.origin)
+        );
+        
+        if (appClient) {
+          appClient.focus();
+          if (targetUrl !== '/') {
+            appClient.navigate(targetUrl);
+          }
+        } else {
+          self.clients.openWindow(targetUrl);
+        }
+      })
     );
   }
 });

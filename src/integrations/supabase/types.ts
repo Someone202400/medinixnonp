@@ -186,7 +186,9 @@ export type Database = {
           id: string
           notification_preferences: Json | null
           phone_number: string | null
+          push_notifications_enabled: boolean | null
           updated_at: string | null
+          weekly_reports_enabled: boolean | null
         }
         Insert: {
           created_at?: string | null
@@ -195,7 +197,9 @@ export type Database = {
           id: string
           notification_preferences?: Json | null
           phone_number?: string | null
+          push_notifications_enabled?: boolean | null
           updated_at?: string | null
+          weekly_reports_enabled?: boolean | null
         }
         Update: {
           created_at?: string | null
@@ -204,7 +208,42 @@ export type Database = {
           id?: string
           notification_preferences?: Json | null
           phone_number?: string | null
+          push_notifications_enabled?: boolean | null
           updated_at?: string | null
+          weekly_reports_enabled?: boolean | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -235,6 +274,42 @@ export type Database = {
           responses?: Json
           symptoms?: Json
           user_id?: string
+        }
+        Relationships: []
+      }
+      weekly_reports: {
+        Row: {
+          adherence_percentage: number
+          created_at: string
+          id: string
+          medications_taken: number
+          report_data: Json | null
+          total_medications: number
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          adherence_percentage?: number
+          created_at?: string
+          id?: string
+          medications_taken?: number
+          report_data?: Json | null
+          total_medications?: number
+          user_id: string
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          adherence_percentage?: number
+          created_at?: string
+          id?: string
+          medications_taken?: number
+          report_data?: Json | null
+          total_medications?: number
+          user_id?: string
+          week_end?: string
+          week_start?: string
         }
         Relationships: []
       }

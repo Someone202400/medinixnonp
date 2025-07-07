@@ -21,20 +21,39 @@ import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [adherenceRefreshTrigger, setAdherenceRefreshTrigger] = useState(0);
+  const [caregiverCount, setCaregiverCount] = useState(0);
 
   // Start notification services when dashboard loads
   useEffect(() => {
     startNotificationServices();
+    fetchCaregiverCount();
     
     return () => {
       stopNotificationServices();
     };
-  }, []);
+  }, [user]);
+
+  const fetchCaregiverCount = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('caregivers')
+        .select('id')
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+      setCaregiverCount(data?.length || 0);
+    } catch (error) {
+      console.error('Error fetching caregiver count:', error);
+    }
+  };
 
   const handleMedicationTaken = () => {
     // Trigger adherence refresh when medication is taken
@@ -74,6 +93,13 @@ const Dashboard = () => {
       icon: MessageCircle,
       color: 'from-orange-500 to-red-500',
       action: () => navigate('/contact-doctor')
+    },
+    {
+      title: 'Manage Caregivers',
+      description: 'Add and manage your caregivers',
+      icon: Users,
+      color: 'from-purple-500 to-indigo-500',
+      action: () => navigate('/settings')
     }
   ];
 
@@ -179,7 +205,9 @@ const Dashboard = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Caregivers</span>
-                  <Badge className="bg-blue-100 text-blue-700">Connected</Badge>
+                  <Badge className="bg-blue-100 text-blue-700">
+                    {caregiverCount} Connected
+                  </Badge>
                 </div>
               </CardContent>
             </Card>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { subscribeToPushNotifications, isPushNotificationSupported } from '@/utils/pushNotificationService';
 
 interface NotificationManagerProps {
   children: React.ReactNode;
@@ -12,6 +13,7 @@ const NotificationManager: React.FC<NotificationManagerProps> = ({ children }) =
   const { user } = useAuth();
   const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
+  const [pushSubscriptionStatus, setPushSubscriptionStatus] = useState<string>('unknown');
 
   useEffect(() => {
     if ('Notification' in window) {
@@ -38,6 +40,7 @@ const NotificationManager: React.FC<NotificationManagerProps> = ({ children }) =
     };
 
     requestNotificationPermission();
+    setupPushNotifications();
 
     // Register service worker for push notifications
     if ('serviceWorker' in navigator) {
@@ -148,6 +151,52 @@ const NotificationManager: React.FC<NotificationManagerProps> = ({ children }) =
       supabase.removeChannel(caregiverNotificationChannel);
     };
   }, [user, notificationPermission, toast]);
+
+  const setupPushNotifications = async () => {
+    if (!user?.id) return;
+
+    try {
+      if (!isPushNotificationSupported()) {
+        setPushSubscriptionStatus('not_supported');
+        console.log('Push notifications not supported on this device');
+        return;
+      }
+
+      const success = await subscribeToPushNotifications(user.id);
+      setPushSubscriptionStatus(success ? 'subscribed' : 'failed');
+
+      if (success) {
+        console.log('Push notifications set up successfully');
+        toast({
+          title: "Push Notifications Ready! 📱",
+          description: "You'll receive medication reminders even when the app is closed.",
+        });
+      }
+    } catch (error) {
+      console.error('Error setting up push notifications:', error);
+      setPushSubscriptionStatus('error');
+    }
+  };
+
+  // Listen for service worker messages
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        console.log('Received message from service worker:', event.data);
+        
+        if (event.data.type === 'MEDICATION_TAKEN') {
+          // Handle medication taken from notification
+          toast({
+            title: "Medication Marked as Taken 💊",
+            description: "Your medication has been marked as taken from the notification.",
+          });
+          
+          // Refresh the app or trigger relevant updates
+          window.location.reload();
+        }
+      });
+    }
+  }, [toast]);
 
   return <>{children}</>;
 };
