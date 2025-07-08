@@ -17,10 +17,10 @@ import {
   BookOpen,
   Plus
 } from 'lucide-react';
-// import TodaysMedications from '@/components/TodaysMedications';
-// import UpcomingMedications from '@/components/UpcomingMedications';
-// import MedicationAdherence from '@/components/MedicationAdherence';
-// import CaregiverManagement from '@/components/CaregiverManagement';
+import TodaysMedications from '@/components/TodaysMedications';
+import UpcomingMedications from '@/components/UpcomingMedications';
+import MedicationAdherence from '@/components/MedicationAdherence';
+import CaregiverManagement from '@/components/CaregiverManagement';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
@@ -149,13 +149,13 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Today's Medications */}
           <div className="lg:col-span-2 space-y-8">
-            {/* <TodaysMedications onMedicationTaken={handleMedicationTaken} /> */}
-            {/* <UpcomingMedications /> */}
+            <TodaysMedications onMedicationTaken={handleMedicationTaken} />
+            <UpcomingMedications />
           </div>
 
           {/* Right Column - Adherence & Quick Actions */}
           <div className="space-y-8">
-            {/* <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} /> */}
+            <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} />
             
             {/* Quick Actions */}
             <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
@@ -230,7 +230,7 @@ const Dashboard = () => {
                 Manage Caregivers
               </DialogTitle>
             </DialogHeader>
-            {/* <CaregiverManagement /> */}
+            <CaregiverManagement />
           </DialogContent>
         </Dialog>
       </div>
