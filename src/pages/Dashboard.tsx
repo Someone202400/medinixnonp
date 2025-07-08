@@ -25,6 +25,145 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
 
+// Add these defensive programming patterns to your Dashboard.tsx and other components
+
+// 1. Safe string operations helper
+export const safeStringOperation = (value: any, operation: (str: string) => string): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  
+  try {
+    const stringValue = String(value);
+    return operation(stringValue);
+  } catch (error) {
+    console.error('Error in string operation:', error);
+    return '';
+  }
+};
+
+// 2. Safe array operations
+export const safeArrayMap = <T, U>(array: T[] | null | undefined, mapper: (item: T, index: number) => U): U[] => {
+  if (!Array.isArray(array)) {
+    return [];
+  }
+  
+  return array.map((item, index) => {
+    try {
+      return mapper(item, index);
+    } catch (error) {
+      console.error('Error in array mapping:', error, 'Item:', item, 'Index:', index);
+      return null as any; // Return null for failed items
+    }
+  }).filter(item => item !== null);
+};
+
+// 3. Safe object property access
+export const safeGetProperty = (obj: any, path: string, defaultValue: any = null): any => {
+  try {
+    if (!obj || typeof obj !== 'object') {
+      return defaultValue;
+    }
+    
+    const keys = path.split('.');
+    let current = obj;
+    
+    for (const key of keys) {
+      if (current === null || current === undefined || !(key in current)) {
+        return defaultValue;
+      }
+      current = current[key];
+    }
+    
+    return current;
+  } catch (error) {
+    console.error('Error accessing property:', path, error);
+    return defaultValue;
+  }
+};
+
+// 4. Safe API response handler
+export const safeApiResponse = <T>(response: { data: T | null; error: any }): T | null => {
+  if (response.error) {
+    console.error('API Error:', response.error);
+    return null;
+  }
+  
+  return response.data;
+};
+
+// 5. Usage examples in Dashboard component:
+
+// Instead of:
+// data.medications.forEach(med => {
+//   console.log(med.name.replace(/\s+/g, '-'));
+// });
+
+// Use:
+// safeArrayMap(data.medications, (med) => {
+//   const name = safeGetProperty(med, 'name', '');
+//   const processedName = safeStringOperation(name, (str) => str.replace(/\s+/g, '-'));
+//   console.log(processedName);
+//   return processedName;
+// });
+
+// 6. Safe date formatting
+export const safeDateFormat = (dateInput: any, formatString: string = 'yyyy-MM-dd'): string => {
+  if (!dateInput) {
+    return '';
+  }
+  
+  try {
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) {
+      return '';
+    }
+    
+    // You can use your preferred date formatting library here
+    return date.toLocaleDateString();
+  } catch (error) {
+    console.error('Error formatting date:', dateInput, error);
+    return '';
+  }
+};
+
+// 7. Safe JSON operations
+export const safeJsonParse = (jsonString: string, defaultValue: any = null): any => {
+  try {
+    if (typeof jsonString !== 'string') {
+      return defaultValue;
+    }
+    
+    return JSON.parse(jsonString);
+  } catch (error) {
+    console.error('Error parsing JSON:', jsonString, error);
+    return defaultValue;
+  }
+};
+
+export const safeJsonStringify = (obj: any, defaultValue: string = ''): string => {
+  try {
+    return JSON.stringify(obj);
+  } catch (error) {
+    console.error('Error stringifying object:', obj, error);
+    return defaultValue;
+  }
+};
+
+// 8. Safe component rendering helper
+export const safeRenderComponent = (
+  condition: boolean,
+  component: React.ReactNode,
+  fallback: React.ReactNode = null
+): React.ReactNode => {
+  try {
+    return condition ? component : fallback;
+  } catch (error) {
+    console.error('Error rendering component:', error);
+    return fallback;
+  }
+};
+
 const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
