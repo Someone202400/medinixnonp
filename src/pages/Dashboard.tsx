@@ -74,10 +74,10 @@ const Dashboard = () => {
       description: 'Add a new medication to your schedule',
       icon: Plus,
       color: 'from-green-500 to-emerald-500',
-      titleFontColor: 'text-green-100',
-      titleFontColorHover: 'text-green-200',
-      descriptionFontColor: 'text-green-200/90',
-      descriptionFontColorHover: 'text-green-200/80',
+      titleFontColor: 'text-green-900',
+      titleFontColorHover: 'text-green-800',
+      descriptionFontColor: 'text-green-800/90',
+      descriptionFontColorHover: 'text-green-800/80',
       action: () => navigate('/add-medication')
     },
     {
@@ -85,10 +85,10 @@ const Dashboard = () => {
       description: 'AI-powered health assessment',
       icon: Stethoscope,
       color: 'from-blue-500 to-cyan-500',
-      titleFontColor: 'text-blue-100',
-      titleFontColorHover: 'text-blue-200',
-      descriptionFontColor: 'text-blue-200/90',
-      descriptionFontColorHover: 'text-blue-200/80',
+      titleFontColor: 'text-blue-900',
+      titleFontColorHover: 'text-blue-800',
+      descriptionFontColor: 'text-blue-800/90',
+      descriptionFontColorHover: 'text-blue-800/80',
       action: () => navigate('/symptom-checker')
     },
     {
@@ -96,10 +96,10 @@ const Dashboard = () => {
       description: 'Browse medication information',
       icon: BookOpen,
       color: 'from-purple-500 to-pink-500',
-      titleFontColor: 'text-purple-100',
-      titleFontColorHover: 'text-purple-200',
-      descriptionFontColor: 'text-purple-200/90',
-      descriptionFontColorHover: 'text-purple-200/80',
+      titleFontColor: 'text-purple-900',
+      titleFontColorHover: 'text-purple-800',
+      descriptionFontColor: 'text-purple-800/90',
+      descriptionFontColorHover: 'text-purple-800/80',
       action: () => navigate('/medication-library')
     },
     {
@@ -107,10 +107,10 @@ const Dashboard = () => {
       description: 'Get in touch with healthcare providers',
       icon: MessageCircle,
       color: 'from-orange-500 to-red-500',
-      titleFontColor: 'text-orange-100',
-      titleFontColorHover: 'text-orange-200',
-      descriptionFontColor: 'text-orange-200/90',
-      descriptionFontColorHover: 'text-orange-200/80',
+      titleFontColor: 'text-orange-900',
+      titleFontColorHover: 'text-orange-800',
+      descriptionFontColor: 'text-orange-800/90',
+      descriptionFontColorHover: 'text-orange-800/80',
       action: () => navigate('/contact-doctor')
     },
     {
@@ -118,10 +118,10 @@ const Dashboard = () => {
       description: 'Add and manage your caregivers',
       icon: Users,
       color: 'from-indigo-500 to-purple-500',
-      titleFontColor: 'text-indigo-100',
-      titleFontColorHover: 'text-indigo-200',
-      descriptionFontColor: 'text-indigo-200/90',
-      descriptionFontColorHover: 'text-indigo-200/80',
+      titleFontColor: 'text-indigo-900',
+      titleFontColorHover: 'text-indigo-800',
+      descriptionFontColor: 'text-indigo-800/90',
+      descriptionFontColorHover: 'text-indigo-800/80',
       action: () => setShowCaregiverDialog(true)
     }
   ];
@@ -197,7 +197,7 @@ const Dashboard = () => {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
-                        <action.icon className="h-7 w-7 text-white drop-shadow-lg" />
+                        <action.icon className={`h-7 w-7 ${action.titleFontColor} group-hover:${action.titleFontColorHover} drop-shadow-lg`} />
                       </div>
                       <div className="flex-1">
                         <h3 className={`font-bold text-lg mb-1 transition-colors ${action.titleFontColor} group-hover:${action.titleFontColorHover}`}>
