@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -98,6 +97,26 @@ export const downloadDataAsJSON = (data: ExportData, filename?: string) => {
   }
 };
 
+// Helper function to safely escape CSV values
+const escapeCSVValue = (value: any): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  const stringValue = String(value);
+  return `"${stringValue.replace(/"/g, '""')}"`;
+};
+
+// Helper function to safely format date
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '';
+  try {
+    return format(new Date(dateString), 'yyyy-MM-dd HH:mm');
+  } catch (error) {
+    console.error('Error formatting date:', dateString, error);
+    return '';
+  }
+};
+
 export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
   try {
     let csvContent = '';
@@ -107,7 +126,7 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Field,Value\n';
     if (data.profile) {
       Object.entries(data.profile).forEach(([key, value]) => {
-        csvContent += `${key},"${String(value).replace(/"/g, '""')}"\n`;
+        csvContent += `${key},${escapeCSVValue(value)}\n`;
       });
     }
     csvContent += '\n';
@@ -116,7 +135,7 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Medications\n';
     csvContent += 'Name,Dosage,Frequency,Start Date,End Date,Active,Notes\n';
     data.medications.forEach(med => {
-      csvContent += `"${med.name}","${med.dosage}","${med.frequency}","${med.start_date}","${med.end_date || ''}","${med.active}","${med.notes || ''}"\n`;
+      csvContent += `${escapeCSVValue(med.name)},${escapeCSVValue(med.dosage)},${escapeCSVValue(med.frequency)},${escapeCSVValue(med.start_date)},${escapeCSVValue(med.end_date)},${escapeCSVValue(med.active)},${escapeCSVValue(med.notes)}\n`;
     });
     csvContent += '\n';
 
@@ -124,9 +143,12 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Medication History\n';
     csvContent += 'Medication,Dosage,Scheduled Time,Status,Taken At,Notes\n';
     data.medicationLogs.forEach(log => {
-      const scheduledTime = format(new Date(log.scheduled_time), 'yyyy-MM-dd HH:mm');
-      const takenTime = log.taken_at ? format(new Date(log.taken_at), 'yyyy-MM-dd HH:mm') : '';
-      csvContent += `"${log.medications?.name || 'Unknown'}","${log.medications?.dosage || ''}","${scheduledTime}","${log.status}","${takenTime}","${log.notes || ''}"\n`;
+      const scheduledTime = formatDate(log.scheduled_time);
+      const takenTime = formatDate(log.taken_at);
+      const medicationName = log.medications?.name || 'Unknown';
+      const medicationDosage = log.medications?.dosage || '';
+      
+      csvContent += `${escapeCSVValue(medicationName)},${escapeCSVValue(medicationDosage)},${escapeCSVValue(scheduledTime)},${escapeCSVValue(log.status)},${escapeCSVValue(takenTime)},${escapeCSVValue(log.notes)}\n`;
     });
     csvContent += '\n';
 
@@ -134,7 +156,7 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Caregivers\n';
     csvContent += 'Name,Relationship,Email,Phone,Notifications Enabled\n';
     data.caregivers.forEach(caregiver => {
-      csvContent += `"${caregiver.name}","${caregiver.relationship || ''}","${caregiver.email || ''}","${caregiver.phone_number || ''}","${caregiver.notifications_enabled}"\n`;
+      csvContent += `${escapeCSVValue(caregiver.name)},${escapeCSVValue(caregiver.relationship)},${escapeCSVValue(caregiver.email)},${escapeCSVValue(caregiver.phone_number)},${escapeCSVValue(caregiver.notifications_enabled)}\n`;
     });
     csvContent += '\n';
 
@@ -142,9 +164,9 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Symptom Checker Sessions\n';
     csvContent += 'Date,Symptoms,Recommendations\n';
     data.symptoms.forEach(session => {
-      const date = format(new Date(session.created_at), 'yyyy-MM-dd HH:mm');
-      const symptoms = JSON.stringify(session.symptoms).replace(/"/g, '""');
-      csvContent += `"${date}","${symptoms}","${session.recommendations || ''}"\n`;
+      const date = formatDate(session.created_at);
+      const symptoms = session.symptoms ? JSON.stringify(session.symptoms).replace(/"/g, '""') : '';
+      csvContent += `${escapeCSVValue(date)},${escapeCSVValue(symptoms)},${escapeCSVValue(session.recommendations)}\n`;
     });
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
