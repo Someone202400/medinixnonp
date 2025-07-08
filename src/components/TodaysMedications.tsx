@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,24 +28,29 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
   const { toast } = useToast();
   const [todaysMeds, setTodaysMeds] = useState<TodaysMedication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchTodaysMedications();
-      // Reduce frequency to prevent excessive API calls
-      const interval = setInterval(fetchTodaysMedications, 2 * 60 * 1000); // 2 minutes instead of 30 seconds
+      const interval = setInterval(fetchTodaysMedications, 2 * 60 * 1000);
       return () => clearInterval(interval);
+    } else {
+      setError('User not authenticated');
+      setLoading(false);
     }
   }, [user]);
 
   const fetchTodaysMedications = async () => {
     if (!user?.id) {
+      setError('User not authenticated');
       setLoading(false);
       return;
     }
 
     try {
-      // Generate today's schedule first
+      setLoading(true);
+      console.log('Generating daily schedule for user:', user.id);
       await generateDailyMedicationSchedule(user.id, new Date());
 
       const today = new Date();
@@ -66,24 +70,34 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
         .in('status', ['pending', 'taken'])
         .order('scheduled_time', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching today\'s medications:', error);
-        throw error;
-      }
+      if (error) throw new Error(`Supabase Error: ${error.message}`);
 
-      const medications: TodaysMedication[] = logs?.map(log => ({
-        id: log.id,
-        medication_id: log.medication_id,
-        medication_name: log.medications?.name || 'Unknown',
-        dosage: log.medications?.dosage || '',
-        scheduled_time: log.scheduled_time,
-        status: log.status as 'pending' | 'taken' | 'missed'
-      })) || [];
+      console.log('Supabase medication_logs:', JSON.stringify(logs, null, 2));
+
+      const medications: TodaysMedication[] = logs?.map(log => {
+        const medName = log.medications?.name && typeof log.medications.name === 'string' 
+          ? log.medications.name 
+          : 'Unknown';
+        const dosage = log.medications?.dosage && typeof log.medications.dosage === 'string' 
+          ? log.medications.dosage 
+          : '';
+        
+        console.log(`Processing log ${log.id}:`, { medName, dosage });
+
+        return {
+          id: log.id,
+          medication_id: log.medication_id,
+          medication_name: medName,
+          dosage: dosage,
+          scheduled_time: log.scheduled_time,
+          status: log.status as 'pending' | 'taken' | 'missed'
+        };
+      }) || [];
 
       setTodaysMeds(medications);
     } catch (error) {
       console.error('Error fetching today\'s medications:', error);
-      // Set empty array on error to prevent crashes
+      setError('Failed to load medications');
       setTodaysMeds([]);
     } finally {
       setLoading(false);
@@ -96,7 +110,6 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
       
       const takenAt = new Date();
       
-      // Update medication log
       const { error: updateError } = await supabase
         .from('medication_logs')
         .update({
@@ -107,7 +120,6 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
 
       if (updateError) throw updateError;
 
-      // Send comprehensive notifications
       await notifyMedicationTaken(
         user?.id!,
         medication.medication_name,
@@ -115,7 +127,6 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
         takenAt
       );
 
-      // Play notification sound
       playNotificationSound();
 
       toast({
@@ -123,7 +134,6 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
         description: `${medication.medication_name} marked as taken. Caregivers have been notified.`,
       });
 
-      // Refresh the list and notify parent components
       fetchTodaysMedications();
       onMedicationTaken?.();
     } catch (error) {
@@ -190,6 +200,19 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-green-500 border-t-transparent mx-auto mb-2"></div>
             <p className="text-gray-600">Loading today's medications...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600">{error}</p>
           </div>
         </CardContent>
       </Card>
