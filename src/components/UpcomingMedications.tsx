@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,24 +28,29 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
   const { toast } = useToast();
   const [upcomingMeds, setUpcomingMeds] = useState<MedicationSchedule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchUpcomingMedications();
-      // Reduce frequency to prevent excessive API calls
-      const interval = setInterval(fetchUpcomingMedications, 5 * 60 * 1000); // 5 minutes instead of 1 minute
+      const interval = setInterval(fetchUpcomingMedications, 5 * 60 * 1000);
       return () => clearInterval(interval);
+    } else {
+      setError('User not authenticated');
+      setLoading(false);
     }
   }, [user, refreshTrigger]);
 
   const fetchUpcomingMedications = async () => {
     if (!user?.id) {
+      setError('User not authenticated');
       setLoading(false);
       return;
     }
 
     try {
-      // Generate schedules for next few days
+      setLoading(true);
+      console.log('Generating schedules for user:', user.id);
       for (let i = 0; i < 3; i++) {
         const targetDate = addDays(new Date(), i);
         await generateDailyMedicationSchedule(user.id, targetDate);
@@ -54,8 +58,6 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
 
       const now = new Date();
       const nextThreeDays = addDays(now, 3);
-
-      // Get upcoming medications (future only, not today's)
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
@@ -73,25 +75,35 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
         .order('scheduled_time', { ascending: true })
         .limit(15);
 
-      if (error) {
-        console.error('Error fetching upcoming medications:', error);
-        throw error;
-      }
+      if (error) throw new Error(`Supabase Error: ${error.message}`);
 
-      const schedules: MedicationSchedule[] = logs?.map(log => ({
-        id: log.id,
-        medication_id: log.medication_id,
-        medication_name: log.medications?.name || 'Unknown',
-        dosage: log.medications?.dosage || '',
-        scheduled_time: log.scheduled_time,
-        status: log.status as 'pending' | 'taken' | 'missed',
-        next_dose: new Date(log.scheduled_time)
-      })) || [];
+      console.log('Supabase upcoming logs:', JSON.stringify(logs, null, 2));
+
+      const schedules: MedicationSchedule[] = logs?.map(log => {
+        const medName = log.medications?.name && typeof log.medications.name === 'string' 
+          ? log.medications.name 
+          : 'Unknown';
+        const dosage = log.medications?.dosage && typeof log.medications.dosage === 'string' 
+          ? log.medications.dosage 
+          : '';
+        
+        console.log(`Processing log ${log.id}:`, { medName, dosage });
+
+        return {
+          id: log.id,
+          medication_id: log.medication_id,
+          medication_name: medName,
+          dosage: dosage,
+          scheduled_time: log.scheduled_time,
+          status: log.status as 'pending' | 'taken' | 'missed',
+          next_dose: new Date(log.scheduled_time)
+        };
+      }) || [];
 
       setUpcomingMeds(schedules);
     } catch (error) {
       console.error('Error fetching upcoming medications:', error);
-      // Set empty array on error to prevent crashes
+      setError('Failed to load upcoming medications');
       setUpcomingMeds([]);
     } finally {
       setLoading(false);
@@ -128,7 +140,6 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
     }
   };
 
-  // Group medications by date
   const groupedMeds = upcomingMeds.reduce((groups, med) => {
     try {
       const dateGroup = getDateGroup(med.scheduled_time);
@@ -149,6 +160,19 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
             <p className="text-gray-600">Loading upcoming medications...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
+        <CardContent className="p-6">
+          <div className="text-center">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-red-600">{error}</p>
           </div>
         </CardContent>
       </Card>
