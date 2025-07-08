@@ -15,3 +15,4 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Expose supabase for debugging
 window.supabase = supabase; // Add this line
+console.log(window.supabase);
