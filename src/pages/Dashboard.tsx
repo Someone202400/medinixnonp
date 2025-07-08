@@ -17,10 +17,6 @@ import {
   BookOpen,
   Plus
 } from 'lucide-react';
-import TodaysMedications from '@/components/TodaysMedications';
-import UpcomingMedications from '@/components/UpcomingMedications';
-import MedicationAdherence from '@/components/MedicationAdherence';
-import CaregiverManagement from '@/components/CaregiverManagement';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
@@ -74,6 +70,10 @@ const Dashboard = () => {
       description: 'Add a new medication to your schedule',
       icon: Plus,
       color: 'from-green-500 to-emerald-500',
+      titleFontColor: 'text-green-100',
+      titleFontColorHover: 'text-green-200',
+      descriptionFontColor: 'text-green-200/90',
+      descriptionFontColorHover: 'text-green-200/80',
       action: () => navigate('/add-medication')
     },
     {
@@ -81,6 +81,10 @@ const Dashboard = () => {
       description: 'AI-powered health assessment',
       icon: Stethoscope,
       color: 'from-blue-500 to-cyan-500',
+      titleFontColor: 'text-blue-100',
+      titleFontColorHover: 'text-blue-200',
+      descriptionFontColor: 'text-blue-200/90',
+      descriptionFontColorHover: 'text-blue-200/80',
       action: () => navigate('/symptom-checker')
     },
     {
@@ -88,6 +92,10 @@ const Dashboard = () => {
       description: 'Browse medication information',
       icon: BookOpen,
       color: 'from-purple-500 to-pink-500',
+      titleFontColor: 'text-purple-100',
+      titleFontColorHover: 'text-purple-200',
+      descriptionFontColor: 'text-purple-200/90',
+      descriptionFontColorHover: 'text-purple-200/80',
       action: () => navigate('/medication-library')
     },
     {
@@ -95,6 +103,10 @@ const Dashboard = () => {
       description: 'Get in touch with healthcare providers',
       icon: MessageCircle,
       color: 'from-orange-500 to-red-500',
+      titleFontColor: 'text-orange-100',
+      titleFontColorHover: 'text-orange-200',
+      descriptionFontColor: 'text-orange-200/90',
+      descriptionFontColorHover: 'text-orange-200/80',
       action: () => navigate('/contact-doctor')
     },
     {
@@ -102,6 +114,10 @@ const Dashboard = () => {
       description: 'Add and manage your caregivers',
       icon: Users,
       color: 'from-indigo-500 to-purple-500',
+      titleFontColor: 'text-indigo-100',
+      titleFontColorHover: 'text-indigo-200',
+      descriptionFontColor: 'text-indigo-200/90',
+      descriptionFontColorHover: 'text-indigo-200/80',
       action: () => setShowCaregiverDialog(true)
     }
   ];
@@ -149,13 +165,13 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Today's Medications */}
           <div className="lg:col-span-2 space-y-8">
-            <TodaysMedications onMedicationTaken={handleMedicationTaken} />
-            <UpcomingMedications />
+            {/* <TodaysMedications onMedicationTaken={handleMedicationTaken} /> */}
+            {/* <UpcomingMedications /> */}
           </div>
 
           {/* Right Column - Adherence & Quick Actions */}
           <div className="space-y-8">
-            <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} />
+            {/* <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} /> */}
             
             {/* Quick Actions */}
             <Card className="bg-gradient-to-br from-white/90 to-indigo-50/70 backdrop-blur-xl border-2 border-indigo-200/30 shadow-2xl">
@@ -172,18 +188,18 @@ const Dashboard = () => {
                     onClick={action.action}
                     className="group p-6 rounded-2xl bg-gradient-to-br hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-  background: `linear-gradient(135deg, ${action.color.split(' ')[0].replace('from-', '')}, ${action.color.split(' ')[1].replace('to-', '')})`
-}}
+                      background: `linear-gradient(135deg, ${action.color.split(' ')[0].replace('from-', '')}, ${action.color.split(' ')[1].replace('to-', '')})`
+                    }}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
                         <action.icon className="h-7 w-7 text-white drop-shadow-lg" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-bold text-white text-lg mb-1 group-hover:text-white/90 transition-colors">
+                        <h3 className={`font-bold text-lg mb-1 transition-colors ${action.titleFontColor} group-hover:${action.titleFontColorHover}`}>
                           {action.title}
                         </h3>
-                        <p className="text-white/85 text-sm leading-relaxed group-hover:text-white/75 transition-colors">
+                        <p className={`text-sm leading-relaxed transition-colors ${action.descriptionFontColor} group-hover:${action.descriptionFontColorHover}`}>
                           {action.description}
                         </p>
                       </div>
@@ -230,7 +246,7 @@ const Dashboard = () => {
                 Manage Caregivers
               </DialogTitle>
             </DialogHeader>
-            <CaregiverManagement />
+            {/* <CaregiverManagement /> */}
           </DialogContent>
         </Dialog>
       </div>
