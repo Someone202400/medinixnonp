@@ -13,7 +13,6 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
   try {
     console.log('Starting data export for user:', userId);
 
-    // Fetch all user data
     const [
       medicationsResponse,
       logsResponse,
@@ -21,63 +20,56 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
       profileResponse,
       symptomsResponse
     ] = await Promise.all([
-      supabase
-        .from('medications')
-        .select('*')
-        .eq('user_id', userId),
-      
+      supabase.from('medications').select('*').eq('user_id', userId),
       supabase
         .from('medication_logs')
-        .select(`
-          *,
-          medications (name, dosage)
-        `)
+        .select('*, medications (name, dosage)')
         .eq('user_id', userId)
         .order('scheduled_time', { ascending: false }),
-      
-      supabase
-        .from('caregivers')
-        .select('*')
-        .eq('user_id', userId),
-      
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single(),
-      
-      supabase
-        .from('symptom_sessions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
+      supabase.from('caregivers').select('*').eq('user_id', userId),
+      supabase.from('profiles').select('*').eq('id', userId).single(),
+      supabase.from('symptom_sessions').select('*').eq('user_id', userId).order('created_at', { ascending: false })
     ]);
 
+    // Log responses for debugging
+    console.log('Medications Response:', medicationsResponse);
+    console.log('Logs Response:', logsResponse);
+    console.log('Caregivers Response:', caregiversResponse);
+    console.log('Profile Response:', profileResponse);
+    console.log('Symptoms Response:', symptomsResponse);
+
     // Check for errors
-    if (medicationsResponse.error) throw medicationsResponse.error;
-    if (logsResponse.error) throw logsResponse.error;
-    if (caregiversResponse.error) throw caregiversResponse.error;
-    if (profileResponse.error) throw profileResponse.error;
-    if (symptomsResponse.error) throw symptomsResponse.error;
+    if (medicationsResponse.error) throw new Error(`Medications Error: ${medicationsResponse.error.message}`);
+    if (logsResponse.error) throw new Error(`Logs Error: ${logsResponse.error.message}`);
+    if (caregiversResponse.error) throw new Error(`Caregivers Error: ${caregiversResponse.error.message}`);
+    if (profileResponse.error) throw new Error(`Profile Error: ${profileResponse.error.message}`);
+    if (symptomsResponse.error) throw new Error(`Symptoms Error: ${symptomsResponse.error.message}`);
 
     const exportData: ExportData = {
-      medications: medicationsResponse.data || [],
-      medicationLogs: logsResponse.data || [],
-      caregivers: caregiversResponse.data || [],
-      profile: profileResponse.data,
-      symptoms: symptomsResponse.data || []
+      medications: Array.isArray(medicationsResponse.data) ? medicationsResponse.data : [],
+      medicationLogs: Array.isArray(logsResponse.data) ? logsResponse.data : [],
+      caregivers: Array.isArray(caregiversResponse.data) ? caregiversResponse.data : [],
+      profile: profileResponse.data || {},
+      symptoms: Array.isArray(symptomsResponse.data) ? symptomsResponse.data : []
     };
 
-    console.log('Data export completed successfully');
+    console.log('Data export completed successfully:', exportData);
     return exportData;
   } catch (error) {
     console.error('Error exporting user data:', error);
-    throw error;
+    return {
+      medications: [],
+      medicationLogs: [],
+      caregivers: [],
+      profile: {},
+      symptoms: []
+    }; // Return fallback data to prevent downstream errors
   }
 };
 
 export const downloadDataAsJSON = (data: ExportData, filename?: string) => {
   try {
+    if (!data) throw new Error('No data provided for JSON download');
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -97,18 +89,15 @@ export const downloadDataAsJSON = (data: ExportData, filename?: string) => {
   }
 };
 
-// Helper function to safely escape CSV values - COMPLETELY FIXED VERSION
 const escapeCSVValue = (value: any): string => {
-  // Handle null, undefined, and other falsy values
   if (value === null || value === undefined || value === '') {
+    console.warn('Undefined or null value detected in escapeCSVValue:', value);
     return '';
   }
   
-  // Ensure we have a string - with better error handling
   let stringValue: string;
   try {
-    // Handle objects and arrays by stringifying them
-    if (typeof value === 'object') {
+    if (typeof value === 'object' && value !== null) {
       stringValue = JSON.stringify(value);
     } else {
       stringValue = String(value);
@@ -118,32 +107,28 @@ const escapeCSVValue = (value: any): string => {
     return '';
   }
   
-  // Additional safety check - ensure stringValue is actually a string
   if (typeof stringValue !== 'string') {
     console.warn('Value is not a string after conversion:', stringValue);
     return '';
   }
   
-  // Check if the string contains commas, quotes, or newlines
   if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n') || stringValue.includes('\r')) {
-    // Escape quotes by doubling them and wrap in quotes
     return `"${stringValue.replace(/"/g, '""')}"`;
   }
   
   return stringValue;
 };
 
-// Helper function to safely format date - IMPROVED VERSION
 const formatDate = (dateString: string | null | undefined): string => {
   if (!dateString || dateString === '' || dateString === 'null' || dateString === 'undefined') {
+    console.warn('Invalid date string in formatDate:', dateString);
     return '';
   }
   
   try {
     const date = new Date(dateString);
-    // Check if date is valid
     if (isNaN(date.getTime())) {
-      console.error('Invalid date:', dateString);
+      console.warn('Invalid date:', dateString);
       return '';
     }
     return format(date, 'yyyy-MM-dd HH:mm');
@@ -153,15 +138,16 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-// Helper function to safely get nested property - IMPROVED VERSION
 const safeGet = (obj: any, path: string, defaultValue: any = ''): any => {
   try {
     if (!obj || typeof obj !== 'object') {
+      console.warn('Invalid object in safeGet:', obj, 'Path:', path);
       return defaultValue;
     }
     
     return path.split('.').reduce((current, key) => {
       if (current === null || current === undefined) {
+        console.warn('Undefined property access in safeGet:', key, 'Path:', path);
         return defaultValue;
       }
       return current[key] !== undefined ? current[key] : defaultValue;
@@ -172,14 +158,13 @@ const safeGet = (obj: any, path: string, defaultValue: any = ''): any => {
   }
 };
 
-// Helper function to safely stringify JSON - IMPROVED VERSION
 const safeStringify = (obj: any): string => {
   try {
     if (obj === null || obj === undefined || obj === '') {
+      console.warn('Null or undefined object in safeStringify:', obj);
       return '';
     }
     
-    // Handle already stringified objects
     if (typeof obj === 'string') {
       return obj;
     }
@@ -193,9 +178,11 @@ const safeStringify = (obj: any): string => {
 
 export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
   try {
+    if (!data) throw new Error('No data provided for CSV download');
+    console.log('Starting CSV download with data:', data);
+    
     let csvContent = '';
     
-    // Profile data
     csvContent += 'Profile Information\n';
     csvContent += 'Field,Value\n';
     if (data.profile && typeof data.profile === 'object') {
@@ -207,7 +194,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     }
     csvContent += '\n';
 
-    // Medications
     csvContent += 'Medications\n';
     csvContent += 'Name,Dosage,Frequency,Start Date,End Date,Active,Notes\n';
     if (Array.isArray(data.medications)) {
@@ -219,7 +205,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     }
     csvContent += '\n';
 
-    // Medication logs
     csvContent += 'Medication History\n';
     csvContent += 'Medication,Dosage,Scheduled Time,Status,Taken At,Notes\n';
     if (Array.isArray(data.medicationLogs)) {
@@ -236,7 +221,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     }
     csvContent += '\n';
 
-    // Caregivers
     csvContent += 'Caregivers\n';
     csvContent += 'Name,Relationship,Email,Phone,Notifications Enabled\n';
     if (Array.isArray(data.caregivers)) {
@@ -248,7 +232,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     }
     csvContent += '\n';
 
-    // Symptom sessions
     csvContent += 'Symptom Checker Sessions\n';
     csvContent += 'Date,Symptoms,Recommendations\n';
     if (Array.isArray(data.symptoms)) {
@@ -256,7 +239,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
         if (session && typeof session === 'object') {
           const date = formatDate(safeGet(session, 'created_at'));
           const symptoms = safeStringify(safeGet(session, 'symptoms'));
-          // Extra safety for the symptoms field - avoid double escaping
           const symptomsValue = symptoms || '';
           
           csvContent += `${escapeCSVValue(date)},${escapeCSVValue(symptomsValue)},${escapeCSVValue(safeGet(session, 'recommendations'))}\n`;
