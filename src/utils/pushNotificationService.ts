@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
-const VAPID_PUBLIC_KEY = 'BNxKZ3QnAj2CJ_9dCfAMJ0JVZNa8vWz-H4Q7t6BkYz8x4sK2LnvCJyh4Qr3rLo-TgO8UeDFwJBl-EWcJzYvCx0E';
+const VAPID_PUBLIC_KEY = 'BO7EJ9rVaGvhD1YGnBlN51V-f6v1adyU8zJ2-fnUfdb38hcY2y22Y85TUGWs13eiwzuVvtBlOEZ7RLTsBzCX7Kk';
 
 export interface PushSubscription {
   endpoint: string;
