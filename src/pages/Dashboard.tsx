@@ -73,7 +73,7 @@ const Dashboard = () => {
       title: 'Add Medication',
       description: 'Add a new medication to your schedule',
       icon: Plus,
-      color: 'from-green-500 to-emerald-500',
+      backgroundColor: 'to-green-300',
       titleFontColor: 'text-green-900',
       titleFontColorHover: 'text-green-800',
       descriptionFontColor: 'text-green-800/90',
@@ -84,7 +84,7 @@ const Dashboard = () => {
       title: 'Symptom Checker',
       description: 'AI-powered health assessment',
       icon: Stethoscope,
-      color: 'from-blue-500 to-cyan-500',
+      backgroundColor: 'to-blue-300',
       titleFontColor: 'text-blue-900',
       titleFontColorHover: 'text-blue-800',
       descriptionFontColor: 'text-blue-800/90',
@@ -95,7 +95,7 @@ const Dashboard = () => {
       title: 'Medication Library',
       description: 'Browse medication information',
       icon: BookOpen,
-      color: 'from-purple-500 to-pink-500',
+      backgroundColor: 'to-purple-300',
       titleFontColor: 'text-purple-900',
       titleFontColorHover: 'text-purple-800',
       descriptionFontColor: 'text-purple-800/90',
@@ -106,7 +106,7 @@ const Dashboard = () => {
       title: 'Contact Doctor',
       description: 'Get in touch with healthcare providers',
       icon: MessageCircle,
-      color: 'from-orange-500 to-red-500',
+      backgroundColor: 'to-orange-300',
       titleFontColor: 'text-orange-900',
       titleFontColorHover: 'text-orange-800',
       descriptionFontColor: 'text-orange-800/90',
@@ -117,7 +117,7 @@ const Dashboard = () => {
       title: 'Manage Caregivers',
       description: 'Add and manage your caregivers',
       icon: Users,
-      color: 'from-indigo-500 to-purple-500',
+      backgroundColor: 'to-indigo-300',
       titleFontColor: 'text-indigo-900',
       titleFontColorHover: 'text-indigo-800',
       descriptionFontColor: 'text-indigo-800/90',
@@ -190,9 +190,9 @@ const Dashboard = () => {
                   <button
                     key={index}
                     onClick={action.action}
-                    className="group p-6 rounded-2xl bg-gradient-to-br hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
+                    className="group p-6 rounded-2xl bg-gradient-to-b hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-                      background: `linear-gradient(135deg, ${action.color.split(' ')[0].replace('from-', '')}, ${action.color.split(' ')[1].replace('to-', '')})`
+                      background: `linear-gradient(180deg, gray-200, ${action.backgroundColor})`
                     }}
                   >
                     <div className="flex items-center gap-4">
