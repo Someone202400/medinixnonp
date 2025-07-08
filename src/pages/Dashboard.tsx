@@ -73,60 +73,65 @@ const Dashboard = () => {
       title: 'Add Medication',
       description: 'Add a new medication to your schedule',
       icon: Plus,
-      gradientStart: 'from-green-600',
-      gradientEnd: 'to-green-300',
+      gradientStart: 'green-700',
+      gradientEnd: 'green-400',
       titleFontColor: 'text-green-900',
       titleFontColorHover: 'text-green-800',
       descriptionFontColor: 'text-green-800/90',
       descriptionFontColorHover: 'text-green-800/80',
+      iconBackground: 'bg-green-100/50',
       action: () => navigate('/add-medication')
     },
     {
       title: 'Symptom Checker',
       description: 'AI-powered health assessment',
       icon: Stethoscope,
-      gradientStart: 'from-blue-600',
-      gradientEnd: 'to-blue-300',
+      gradientStart: 'blue-700',
+      gradientEnd: 'blue-400',
       titleFontColor: 'text-blue-900',
       titleFontColorHover: 'text-blue-800',
       descriptionFontColor: 'text-blue-800/90',
       descriptionFontColorHover: 'text-blue-800/80',
+      iconBackground: 'bg-blue-100/50',
       action: () => navigate('/symptom-checker')
     },
     {
       title: 'Medication Library',
       description: 'Browse medication information',
       icon: BookOpen,
-      gradientStart: 'from-purple-600',
-      gradientEnd: 'to-purple-300',
+      gradientStart: 'purple-600',
+      gradientEnd: 'purple-400',
       titleFontColor: 'text-purple-900',
       titleFontColorHover: 'text-purple-800',
       descriptionFontColor: 'text-purple-800/90',
       descriptionFontColorHover: 'text-purple-800/80',
+      iconBackground: 'bg-purple-100/50',
       action: () => navigate('/medication-library')
     },
     {
       title: 'Contact Doctor',
       description: 'Get in touch with healthcare providers',
       icon: MessageCircle,
-      gradientStart: 'from-orange-600',
-      gradientEnd: 'to-orange-300',
+      gradientStart: 'orange-600',
+      gradientEnd: 'orange-400',
       titleFontColor: 'text-orange-900',
       titleFontColorHover: 'text-orange-800',
       descriptionFontColor: 'text-orange-800/90',
       descriptionFontColorHover: 'text-orange-800/80',
+      iconBackground: 'bg-orange-100/50',
       action: () => navigate('/contact-doctor')
     },
     {
       title: 'Manage Caregivers',
       description: 'Add and manage your caregivers',
       icon: Users,
-      gradientStart: 'from-indigo-600',
-      gradientEnd: 'to-indigo-300',
+      gradientStart: 'indigo-600',
+      gradientEnd: 'indigo-400',
       titleFontColor: 'text-indigo-900',
       titleFontColorHover: 'text-indigo-800',
       descriptionFontColor: 'text-indigo-800/90',
       descriptionFontColorHover: 'text-indigo-800/80',
+      iconBackground: 'bg-indigo-100/50',
       action: () => setShowCaregiverDialog(true)
     }
   ];
@@ -197,11 +202,11 @@ const Dashboard = () => {
                     onClick={action.action}
                     className="group p-6 rounded-2xl bg-gradient-to-b hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-                      background: `linear-gradient(180deg, ${action.gradientStart.replace('from-', '')}, ${action.gradientEnd.replace('to-', '')})`
+                      background: `linear-gradient(180deg, ${action.gradientStart}, ${action.gradientEnd}) !important`
                     }}
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
+                      <div className={`w-14 h-14 ${action.iconBackground} backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg`}>
                         <action.icon className={`h-7 w-7 ${action.titleFontColor} group-hover:${action.titleFontColorHover} drop-shadow-lg`} />
                       </div>
                       <div className="flex-1">
