@@ -148,10 +148,10 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Today's Medications */}
-          <div className="lg:col-span-2 space-y-8">
+          /*<div className="lg:col-span-2 space-y-8">
             <TodaysMedications onMedicationTaken={handleMedicationTaken} />
             <UpcomingMedications />
-          </div>
+          </div>*/
 
           {/* Right Column - Adherence & Quick Actions */}
           <div className="space-y-8">
