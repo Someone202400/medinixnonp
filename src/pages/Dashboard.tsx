@@ -73,7 +73,8 @@ const Dashboard = () => {
       title: 'Add Medication',
       description: 'Add a new medication to your schedule',
       icon: Plus,
-      backgroundColor: 'to-green-300',
+      gradientStart: 'from-green-600',
+      gradientEnd: 'to-green-300',
       titleFontColor: 'text-green-900',
       titleFontColorHover: 'text-green-800',
       descriptionFontColor: 'text-green-800/90',
@@ -84,7 +85,8 @@ const Dashboard = () => {
       title: 'Symptom Checker',
       description: 'AI-powered health assessment',
       icon: Stethoscope,
-      backgroundColor: 'to-blue-300',
+      gradientStart: 'from-blue-600',
+      gradientEnd: 'to-blue-300',
       titleFontColor: 'text-blue-900',
       titleFontColorHover: 'text-blue-800',
       descriptionFontColor: 'text-blue-800/90',
@@ -95,7 +97,8 @@ const Dashboard = () => {
       title: 'Medication Library',
       description: 'Browse medication information',
       icon: BookOpen,
-      backgroundColor: 'to-purple-300',
+      gradientStart: 'from-purple-600',
+      gradientEnd: 'to-purple-300',
       titleFontColor: 'text-purple-900',
       titleFontColorHover: 'text-purple-800',
       descriptionFontColor: 'text-purple-800/90',
@@ -106,7 +109,8 @@ const Dashboard = () => {
       title: 'Contact Doctor',
       description: 'Get in touch with healthcare providers',
       icon: MessageCircle,
-      backgroundColor: 'to-orange-300',
+      gradientStart: 'from-orange-600',
+      gradientEnd: 'to-orange-300',
       titleFontColor: 'text-orange-900',
       titleFontColorHover: 'text-orange-800',
       descriptionFontColor: 'text-orange-800/90',
@@ -117,7 +121,8 @@ const Dashboard = () => {
       title: 'Manage Caregivers',
       description: 'Add and manage your caregivers',
       icon: Users,
-      backgroundColor: 'to-indigo-300',
+      gradientStart: 'from-indigo-600',
+      gradientEnd: 'to-indigo-300',
       titleFontColor: 'text-indigo-900',
       titleFontColorHover: 'text-indigo-800',
       descriptionFontColor: 'text-indigo-800/90',
@@ -192,7 +197,7 @@ const Dashboard = () => {
                     onClick={action.action}
                     className="group p-6 rounded-2xl bg-gradient-to-b hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-                      background: `linear-gradient(180deg, gray-200, ${action.backgroundColor})`
+                      background: `linear-gradient(180deg, ${action.gradientStart.replace('from-', '')}, ${action.gradientEnd.replace('to-', '')})`
                     }}
                   >
                     <div className="flex items-center gap-4">
