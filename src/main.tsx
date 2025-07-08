@@ -203,15 +203,26 @@ try {
       <App />
     </ErrorBoundary>
   );
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(registration => {
-          console.log('Service Worker registered with scope:', registration.scope);
-        })
-        .catch(error => {
-          console.error('Service Worker registration failed:', error);
-        });
+  if ('serviceWorker' in navigator && 'PushManager' in window) {
+    window.addEventListener('load', async () => {
+      try {
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered with scope:', registration.scope);
+
+        // Subscribe user to Push
+        const subscription = await registration.pushManager.getSubscription() 
+          || await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY_HERE'),
+          });
+
+        console.log('Push subscription:', subscription);
+
+        // TODO: Send 'subscription' to your backend to save for sending push messages
+
+      } catch (error) {
+        console.error('Service Worker registration or push subscription failed:', error);
+      }
     });
   }
   
