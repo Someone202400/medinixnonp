@@ -17,6 +17,10 @@ import SystemTest from '@/components/SystemTest';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications
+} from '@/utils/pushNotificationService';
 
 interface NotificationPreferences {
   push: boolean;
