@@ -31,12 +31,12 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
       supabase.from('symptom_sessions').select('*').eq('user_id', userId).order('created_at', { ascending: false })
     ]);
 
-    // Log responses for debugging
-    console.log('Medications Response:', medicationsResponse);
-    console.log('Logs Response:', logsResponse);
-    console.log('Caregivers Response:', caregiversResponse);
-    console.log('Profile Response:', profileResponse);
-    console.log('Symptoms Response:', symptomsResponse);
+    // Detailed logging for debugging
+    console.log('Medications Response:', JSON.stringify(medicationsResponse, null, 2));
+    console.log('Logs Response:', JSON.stringify(logsResponse, null, 2));
+    console.log('Caregivers Response:', JSON.stringify(caregiversResponse, null, 2));
+    console.log('Profile Response:', JSON.stringify(profileResponse, null, 2));
+    console.log('Symptoms Response:', JSON.stringify(symptomsResponse, null, 2));
 
     // Check for errors
     if (medicationsResponse.error) throw new Error(`Medications Error: ${medicationsResponse.error.message}`);
@@ -45,15 +45,19 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
     if (profileResponse.error) throw new Error(`Profile Error: ${profileResponse.error.message}`);
     if (symptomsResponse.error) throw new Error(`Symptoms Error: ${symptomsResponse.error.message}`);
 
+    // Validate data structure
     const exportData: ExportData = {
       medications: Array.isArray(medicationsResponse.data) ? medicationsResponse.data : [],
-      medicationLogs: Array.isArray(logsResponse.data) ? logsResponse.data : [],
+      medicationLogs: Array.isArray(logsResponse.data) ? logsResponse.data.map(log => ({
+        ...log,
+        medications: log.medications || { name: 'Unknown', dosage: '' }
+      })) : [],
       caregivers: Array.isArray(caregiversResponse.data) ? caregiversResponse.data : [],
       profile: profileResponse.data || {},
       symptoms: Array.isArray(symptomsResponse.data) ? symptomsResponse.data : []
     };
 
-    console.log('Data export completed successfully:', exportData);
+    console.log('Data export completed successfully:', JSON.stringify(exportData, null, 2));
     return exportData;
   } catch (error) {
     console.error('Error exporting user data:', error);
@@ -63,7 +67,7 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
       caregivers: [],
       profile: {},
       symptoms: []
-    }; // Return fallback data to prevent downstream errors
+    };
   }
 };
 
@@ -179,7 +183,7 @@ const safeStringify = (obj: any): string => {
 export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
   try {
     if (!data) throw new Error('No data provided for CSV download');
-    console.log('Starting CSV download with data:', data);
+    console.log('Starting CSV download with data:', JSON.stringify(data, null, 2));
     
     let csvContent = '';
     
