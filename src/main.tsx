@@ -213,7 +213,7 @@ try {
         const subscription = await registration.pushManager.getSubscription() 
           || await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array('YOUR_PUBLIC_VAPID_KEY_HERE'),
+            applicationServerKey: urlBase64ToUint8Array('BO7EJ9rVaGvhD1YGnBlN51V-f6v1adyU8zJ2-fnUfdb38hcY2y22Y85TUGWs13eiwzuVvtBlOEZ7RLTsBzCX7Kk'),
           });
 
         console.log('Push subscription:', subscription);
