@@ -145,12 +145,45 @@ const Settings = () => {
     }));
   };
 
-  const handleAdvancedNotificationChange = (type: 'push_notifications_enabled' | 'weekly_reports_enabled', enabled: boolean) => {
-    setProfile(prev => ({
-      ...prev,
-      [type]: enabled
-    }));
-  };
+  const handleAdvancedNotificationChange = async (
+  type: 'push_notifications_enabled' | 'weekly_reports_enabled', 
+  enabled: boolean
+) => {
+  // Update your profile state to reflect the toggle
+  setProfile(prev => ({
+    ...prev,
+    [type]: enabled
+  }));
+
+  if (type === 'push_notifications_enabled') {
+    if (enabled) {
+      // If turning ON push notifications, subscribe the user
+      if (user?.id) {
+        const success = await subscribeToPushNotifications(user.id);
+        if (!success) {
+          toast({
+            title: "Push Subscription Failed",
+            description: "Could not subscribe to push notifications.",
+            variant: "destructive"
+          });
+        }
+      }
+    } else {
+      // If turning OFF push notifications, unsubscribe the user
+      if (user?.id) {
+        const success = await unsubscribeFromPushNotifications(user.id);
+        if (!success) {
+          toast({
+            title: "Unsubscription Failed",
+            description: "Could not unsubscribe from push notifications.",
+            variant: "destructive"
+          });
+        }
+      }
+    }
+  }
+};
+
 
   const handleDataExport = async (format: 'json' | 'csv') => {
     if (!user?.id) return;
