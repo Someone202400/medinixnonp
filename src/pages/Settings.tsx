@@ -17,10 +17,6 @@ import SystemTest from '@/components/SystemTest';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '@/i18n';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  subscribeToPushNotifications,
-  unsubscribeFromPushNotifications
-} from '@/utils/pushNotificationService';
 
 interface NotificationPreferences {
   push: boolean;
@@ -139,45 +135,15 @@ const Settings = () => {
     }));
   };
 
-const handleAdvancedNotificationChange = async (
-  type: 'push_notifications_enabled' | 'weekly_reports_enabled', 
-  enabled: boolean
-) => {
-  // Update your profile state to reflect the toggle
-  setProfile(prev => ({
-    ...prev,
-    [type]: enabled
-  }));
-
-  if (type === 'push_notifications_enabled') {
-    if (enabled) {
-      // If turning ON push notifications, subscribe the user
-      if (user?.id) {
-        const success = await subscribeToPushNotifications(user.id);
-        if (!success) {
-          toast({
-            title: "Push Subscription Failed",
-            description: "Could not subscribe to push notifications.",
-            variant: "destructive"
-          });
-        }
+  const handleNotificationChange = (type: keyof NotificationPreferences, enabled: boolean) => {
+    setProfile(prev => ({
+      ...prev,
+      notification_preferences: {
+        ...prev.notification_preferences,
+        [type]: enabled
       }
-    } else {
-      // If turning OFF push notifications, unsubscribe the user
-      if (user?.id) {
-        const success = await unsubscribeFromPushNotifications(user.id);
-        if (!success) {
-          toast({
-            title: "Unsubscription Failed",
-            description: "Could not unsubscribe from push notifications.",
-            variant: "destructive"
-          });
-        }
-      }
-    }
-  }
-};
-
+    }));
+  };
 
   const handleAdvancedNotificationChange = (type: 'push_notifications_enabled' | 'weekly_reports_enabled', enabled: boolean) => {
     setProfile(prev => ({
