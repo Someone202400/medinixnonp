@@ -172,8 +172,8 @@ const Dashboard = () => {
                     onClick={action.action}
                     className="group p-6 rounded-2xl bg-gradient-to-br hover:shadow-2xl transition-all duration-300 text-left transform hover:scale-105 hover:-translate-y-1"
                     style={{
-                      background: `linear-gradient(135deg, ${action.color.split(' ')[1].replace('from-', '')}, ${action.color.split(' ')[3].replace('to-', '')})`
-                    }}
+  background: `linear-gradient(135deg, ${action.color.split(' ')[0].replace('from-', '')}, ${action.color.split(' ')[1].replace('to-', '')})`
+}}
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 bg-white/25 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg">
