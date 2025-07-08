@@ -97,18 +97,30 @@ export const downloadDataAsJSON = (data: ExportData, filename?: string) => {
   }
 };
 
-// Helper function to safely escape CSV values - FIXED VERSION
+// Helper function to safely escape CSV values - COMPLETELY FIXED VERSION
 const escapeCSVValue = (value: any): string => {
-  if (value === null || value === undefined) {
+  // Handle null, undefined, and other falsy values
+  if (value === null || value === undefined || value === '') {
     return '';
   }
   
-  // Ensure we have a string
+  // Ensure we have a string - with better error handling
   let stringValue: string;
   try {
-    stringValue = String(value);
+    // Handle objects and arrays by stringifying them
+    if (typeof value === 'object') {
+      stringValue = JSON.stringify(value);
+    } else {
+      stringValue = String(value);
+    }
   } catch (error) {
     console.error('Error converting value to string:', value, error);
+    return '';
+  }
+  
+  // Additional safety check - ensure stringValue is actually a string
+  if (typeof stringValue !== 'string') {
+    console.warn('Value is not a string after conversion:', stringValue);
     return '';
   }
   
@@ -121,9 +133,11 @@ const escapeCSVValue = (value: any): string => {
   return stringValue;
 };
 
-// Helper function to safely format date - FIXED VERSION
+// Helper function to safely format date - IMPROVED VERSION
 const formatDate = (dateString: string | null | undefined): string => {
-  if (!dateString) return '';
+  if (!dateString || dateString === '' || dateString === 'null' || dateString === 'undefined') {
+    return '';
+  }
   
   try {
     const date = new Date(dateString);
@@ -139,11 +153,18 @@ const formatDate = (dateString: string | null | undefined): string => {
   }
 };
 
-// Helper function to safely get nested property
+// Helper function to safely get nested property - IMPROVED VERSION
 const safeGet = (obj: any, path: string, defaultValue: any = ''): any => {
   try {
+    if (!obj || typeof obj !== 'object') {
+      return defaultValue;
+    }
+    
     return path.split('.').reduce((current, key) => {
-      return current && current[key] !== undefined ? current[key] : defaultValue;
+      if (current === null || current === undefined) {
+        return defaultValue;
+      }
+      return current[key] !== undefined ? current[key] : defaultValue;
     }, obj);
   } catch (error) {
     console.error('Error getting nested property:', path, error);
@@ -151,10 +172,18 @@ const safeGet = (obj: any, path: string, defaultValue: any = ''): any => {
   }
 };
 
-// Helper function to safely stringify JSON
+// Helper function to safely stringify JSON - IMPROVED VERSION
 const safeStringify = (obj: any): string => {
   try {
-    if (obj === null || obj === undefined) return '';
+    if (obj === null || obj === undefined || obj === '') {
+      return '';
+    }
+    
+    // Handle already stringified objects
+    if (typeof obj === 'string') {
+      return obj;
+    }
+    
     return JSON.stringify(obj);
   } catch (error) {
     console.error('Error stringifying object:', obj, error);
@@ -171,7 +200,7 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     csvContent += 'Field,Value\n';
     if (data.profile && typeof data.profile === 'object') {
       Object.entries(data.profile).forEach(([key, value]) => {
-        if (key && value !== undefined) {
+        if (key && value !== undefined && value !== null) {
           csvContent += `${escapeCSVValue(key)},${escapeCSVValue(value)}\n`;
         }
       });
@@ -227,9 +256,10 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
         if (session && typeof session === 'object') {
           const date = formatDate(safeGet(session, 'created_at'));
           const symptoms = safeStringify(safeGet(session, 'symptoms'));
-          const symptomsEscaped = symptoms ? symptoms.replace(/"/g, '""') : '';
+          // Extra safety for the symptoms field - avoid double escaping
+          const symptomsValue = symptoms || '';
           
-          csvContent += `${escapeCSVValue(date)},${escapeCSVValue(symptomsEscaped)},${escapeCSVValue(safeGet(session, 'recommendations'))}\n`;
+          csvContent += `${escapeCSVValue(date)},${escapeCSVValue(symptomsValue)},${escapeCSVValue(safeGet(session, 'recommendations'))}\n`;
         }
       });
     }
