@@ -48,16 +48,27 @@ const SymptomChecker = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
       setResult(data);
     } catch (error) {
-      console.error('Frontend error:', error);
-      toast({
-        title: "Analysis Failed",
-        description: "Couldn’t analyze symptoms. Please try again or contact support.",
-        variant: "destructive"
-      });
+      // Suppress console error logging for known issues
+      if (error.message.includes('Edge Function returned a non-2xx status code')) {
+        toast({
+          title: "Analysis Unavailable",
+          description: "The symptom analysis service is temporarily unavailable. Please try again later or consult a healthcare provider.",
+          variant: "destructive"
+        });
+      } else {
+        console.error('Frontend error:', error);
+        toast({
+          title: "Analysis Failed",
+          description: "An unexpected error occurred. Please try again or contact support.",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoading(false);
     }
