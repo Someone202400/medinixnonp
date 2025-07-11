@@ -7,7 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const groqApiKey = Deno.env.get('GROQ_API_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 interface SymptomAnalysisRequest {
   symptoms: string;
@@ -30,46 +32,36 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Validate environment variables
+    if (!groqApiKey) throw new Error('Missing GROQ_API_KEY');
+    if (!supabaseUrl) throw new Error('Missing SUPABASE_URL');
+    if (!supabaseServiceRoleKey) throw new Error('Missing SUPABASE_SERVICE_ROLE_KEY');
+
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     const { symptoms, userId }: SymptomAnalysisRequest = await req.json();
+    if (!symptoms?.trim()) throw new Error('No symptoms provided');
 
-    if (!symptoms.trim()) {
-      throw new Error('No symptoms provided');
-    }
-
-    console.log('Received symptoms:', symptoms);
+    console.log('Processing symptoms:', symptoms, 'for user:', userId);
 
     const symptomContext = `
-You are an AI symptom checker. Analyze the following symptoms and provide:
-1. A list of possible conditions with their probabilities (as percentages).
-2. Recommended next steps for managing the symptoms.
-3. A disclaimer emphasizing the importance of consulting a healthcare professional.
-
-Symptoms: "${symptoms}"
-
-Return the response in JSON format:
+Analyze symptoms: "${symptoms}"
+Return JSON:
 {
-  "conditions": [
-    {"name": "Condition 1", "probability": 80, "description": "Brief description"},
-    {"name": "Condition 2", "probability": 50, "description": "Brief description"}
-  ],
-  "nextSteps": ["Step 1", "Step 2"],
-  "disclaimer": "This is not a substitute for professional medical advice."
+  "conditions": [{"name": "Condition", "probability": 0, "description": "Brief description"}],
+  "nextSteps": ["Step"],
+  "disclaimer": "Not a substitute for medical advice."
 }
     `;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${groqApiKey}`,
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.1-8b-instant',
         messages: [
           {
             role: 'system',
@@ -81,21 +73,23 @@ Return the response in JSON format:
           }
         ],
         temperature: 0.5,
-        max_tokens: 1000
+        max_tokens: 500, // Optimized for efficiency
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('OpenAI API error:', errorText);
-      if (errorText.includes('insufficient_quota')) {
-        throw new Error('OpenAI API quota exceeded. Please check your plan and billing details.');
+      console.error('Groq API error:', errorText);
+      if (errorText.includes('rate_limit_exceeded')) {
+        throw new Error('Groq API rate limit exceeded. Please try again later.');
       }
-      throw new Error(`OpenAI API failed: ${response.status} - ${errorText}`);
+      throw new Error(`Groq API failed: ${response.status} - ${errorText}`);
     }
 
     const aiResponse = await response.json();
-    const analysisText = aiResponse.choices[0].message.content;
+    const analysisText = aiResponse.choices?.[0]?.message?.content;
+    if (!analysisText) throw new Error('No content in AI response');
+
     console.log('Raw AI response:', analysisText);
 
     let analysisResult: AnalysisResult;
@@ -128,7 +122,8 @@ Return the response in JSON format:
       });
 
     if (dbError) {
-      console.error('Database error:', dbError);
+      console.error('Database error:', dbError.message);
+      throw new Error(`Database operation failed: ${dbError.message}`);
     }
 
     return new Response(JSON.stringify(analysisResult), {
@@ -140,8 +135,10 @@ Return the response in JSON format:
     return new Response(
       JSON.stringify({ 
         error: 'Analysis failed',
-        message: error.message.includes('quota') 
+        message: error.message.includes('rate_limit_exceeded') 
           ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later or consult a healthcare provider.'
+          : error.message.includes('Database operation failed')
+          ? 'Unable to save analysis data. Please try again or consult a healthcare provider.'
           : 'Unable to analyze symptoms. Please try again or consult a healthcare provider.'
       }),
       {
