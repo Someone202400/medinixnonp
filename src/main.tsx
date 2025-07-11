@@ -1,8 +1,8 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
-import './i18n' // Initialize i18next
 import './index.css'
+// import './i18n' // COMMENTED OUT FOR TESTING
 
 // Enhanced error boundary with more debugging info
 class ErrorBoundary extends React.Component<
@@ -242,20 +242,4 @@ try {
       </div>
     `;
   }
-}
-
-// Utility function for service worker
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
 }
