@@ -32,8 +32,8 @@ const SymptomChecker = () => {
   const analyzeSymptoms = async () => {
     if (!symptoms.trim()) {
       toast({
-        title: "Please enter symptoms",
-        description: "Describe your symptoms to get an AI analysis.",
+        title: "Error",
+        description: "Please enter your symptoms.",
         variant: "destructive"
       });
       return;
@@ -44,7 +44,7 @@ const SymptomChecker = () => {
       const { data, error } = await supabase.functions.invoke('ai-symptom-analysis', {
         body: {
           symptoms,
-          userId: user?.id
+          userId: user?.id || 'anonymous'
         }
       });
 
@@ -52,10 +52,10 @@ const SymptomChecker = () => {
 
       setResult(data);
     } catch (error) {
-      console.error('Error analyzing symptoms:', error);
+      console.error('Frontend error:', error);
       toast({
-        title: "Analysis Error",
-        description: "Unable to analyze symptoms. Please try again or contact a healthcare provider.",
+        title: "Analysis Failed",
+        description: "Couldn’t analyze symptoms. Please try again or contact support.",
         variant: "destructive"
       });
     } finally {
@@ -71,13 +71,11 @@ const SymptomChecker = () => {
   if (loading) {
     return (
       <Card className="w-full max-w-2xl mx-auto">
-        <CardContent className="p-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
-            <Brain className="h-8 w-8 text-primary mx-auto mb-4 animate-pulse" />
-            <p className="text-lg font-medium">{t('symptomChecker.analyzing')}</p>
-            <p className="text-sm text-muted-foreground mt-2">AI is analyzing your symptoms...</p>
-          </div>
+        <CardContent className="p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <Brain className="h-8 w-8 text-primary mx-auto mb-4 animate-pulse" />
+          <p className="text-lg font-medium">Analyzing...</p>
+          <p className="text-sm text-muted-foreground mt-2">Processing your symptoms...</p>
         </CardContent>
       </Card>
     );
@@ -93,7 +91,6 @@ const SymptomChecker = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Possible Conditions */}
           <div className="space-y-3">
             <h3 className="font-semibold text-lg">Possible Conditions:</h3>
             <div className="grid gap-3">
@@ -101,32 +98,26 @@ const SymptomChecker = () => {
                 <div key={index} className="p-4 border rounded-lg bg-card">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium">{condition.name}</h4>
-                    <Badge variant="secondary">{condition.probability}% likelihood</Badge>
+                    <Badge variant="secondary">{condition.probability}%</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{condition.description}</p>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Next Steps */}
           <div className="space-y-3">
             <h3 className="font-semibold text-lg">Next Steps:</h3>
             <ul className="space-y-2">
               {result.nextSteps.map((step, index) => (
                 <li key={index} className="flex items-start gap-2">
-                  <span className="text-foreground">{step}</span>
+                  <span>{step}</span>
                 </li>
               ))}
             </ul>
           </div>
-
-          <div className="flex gap-3">
-            <Button onClick={resetChecker} variant="outline" className="flex-1">
-              New Analysis
-            </Button>
-          </div>
-
+          <Button onClick={resetChecker} variant="outline" className="w-full">
+            New Analysis
+          </Button>
           <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
             <strong>Disclaimer:</strong> {result.disclaimer}
           </div>
@@ -135,42 +126,40 @@ const SymptomChecker = () => {
     );
   }
 
-  // Initial symptom input stage
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl">
           <Brain className="h-6 w-6 text-primary" />
-          {t('symptomChecker.title')}
+          Symptom Checker
         </CardTitle>
         <p className="text-muted-foreground">
-          {t('symptomChecker.description')}
+          Enter your symptoms for an AI-powered analysis.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <label className="text-sm font-medium">
-            {t('symptomChecker.enterSymptoms')}
+            Describe your symptoms:
           </label>
           <Textarea
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
-            placeholder="e.g., I have a headache and feel dizzy"
+            placeholder="e.g., I have a headache and feel tired"
             className="min-h-[120px]"
           />
           <Button 
             onClick={analyzeSymptoms}
-            disabled={!symptoms.trim() || loading}
+            disabled={loading || !symptoms.trim()}
             className="w-full"
             size="lg"
           >
             <Brain className="h-4 w-4 mr-2" />
-            {loading ? t('symptomChecker.analyzing') : t('symptomChecker.analyze')}
+            {loading ? 'Analyzing...' : 'Analyze Symptoms'}
           </Button>
         </div>
-
         <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
-          <strong>Disclaimer:</strong> {t('symptomChecker.disclaimer')}
+          <strong>Disclaimer:</strong> This tool is not a substitute for professional medical advice.
         </div>
       </CardContent>
     </Card>
