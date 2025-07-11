@@ -65,8 +65,8 @@ Return the response in JSON format:
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${openAIApiKey}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -88,6 +88,9 @@ Return the response in JSON format:
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenAI API error:', errorText);
+      if (errorText.includes('insufficient_quota')) {
+        throw new Error('OpenAI API quota exceeded. Please check your plan and billing details.');
+      }
       throw new Error(`OpenAI API failed: ${response.status} - ${errorText}`);
     }
 
@@ -100,7 +103,20 @@ Return the response in JSON format:
       analysisResult = JSON.parse(analysisText);
     } catch (parseError) {
       console.error('Failed to parse AI response:', analysisText);
-      throw new Error('Invalid AI response format');
+      analysisResult = {
+        conditions: [
+          {
+            name: "Analysis unavailable",
+            probability: 0,
+            description: "Unable to process symptoms due to an internal error."
+          }
+        ],
+        nextSteps: [
+          "Consult a healthcare provider for proper evaluation",
+          "Try again later or contact support"
+        ],
+        disclaimer: "This analysis is for informational purposes only and should not replace professional medical advice."
+      };
     }
 
     const { error: dbError } = await supabase
@@ -124,7 +140,9 @@ Return the response in JSON format:
     return new Response(
       JSON.stringify({ 
         error: 'Analysis failed',
-        message: 'Unable to analyze symptoms. Please try again or consult a healthcare provider.'
+        message: error.message.includes('quota') 
+          ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later or consult a healthcare provider.'
+          : 'Unable to analyze symptoms. Please try again or consult a healthcare provider.'
       }),
       {
         status: 500,
