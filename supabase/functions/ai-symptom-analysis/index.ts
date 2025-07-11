@@ -46,7 +46,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const symptomContext = `
 Analyze symptoms: "${symptoms}"
-Return JSON:
+Return only valid JSON (no extra text or markdown):
 {
   "conditions": [{"name": "Condition", "probability": 0, "description": "Brief description"}],
   "nextSteps": ["Step"],
@@ -65,7 +65,7 @@ Return JSON:
         messages: [
           {
             role: 'system',
-            content: 'You are an AI symptom checker. Analyze symptoms and suggest conditions with probabilities and next steps. Always include a disclaimer.'
+            content: 'You are an AI symptom checker. Analyze symptoms and return only valid JSON with conditions (name, probability as a decimal, description), next steps, and a disclaimer. Do not include markdown or extra text.'
           },
           {
             role: 'user',
@@ -87,16 +87,38 @@ Return JSON:
     }
 
     const aiResponse = await response.json();
-    const analysisText = aiResponse.choices?.[0]?.message?.content;
+    let analysisText = aiResponse.choices?.[0]?.message?.content;
     if (!analysisText) throw new Error('No content in AI response');
 
     console.log('Raw AI response:', analysisText);
+
+    // Clean the response to extract JSON
+    try {
+      // Extract content between ```json and ``` markers, if present
+      const jsonMatch = analysisText.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch && jsonMatch[1]) {
+        analysisText = jsonMatch[1].trim();
+      } else {
+        // Remove any non-JSON text before/after
+        analysisText = analysisText.trim();
+        if (!analysisText.startsWith('{')) {
+          const start = analysisText.indexOf('{');
+          const end = analysisText.lastIndexOf('}');
+          if (start !== -1 && end !== -1) {
+            analysisText = analysisText.slice(start, end + 1);
+          }
+        }
+      }
+      console.log('Cleaned AI response:', analysisText);
+    } catch (cleanError) {
+      console.error('Failed to clean AI response:', cleanError.message);
+    }
 
     let analysisResult: AnalysisResult;
     try {
       analysisResult = JSON.parse(analysisText);
     } catch (parseError) {
-      console.error('Failed to parse AI response:', analysisText);
+      console.error('Failed to parse AI response:', analysisText, parseError.message);
       analysisResult = {
         conditions: [
           {
@@ -125,7 +147,6 @@ Return JSON:
 
       if (dbError) {
         console.error('Database error:', dbError.message);
-        // Log but don't throw to allow analysis to be returned
       }
     } catch (dbError) {
       console.error('Unexpected database error:', dbError.message);
@@ -141,7 +162,7 @@ Return JSON:
       JSON.stringify({ 
         error: 'Analysis failed',
         message: error.message.includes('rate_limit_exceeded') 
-          ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later or consult a healthcare provider.'
+          ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later.'
           : error.message.includes('No symptoms provided')
           ? 'Please provide symptoms to analyze.'
           : 'Unable to analyze symptoms. Please try again or consult a healthcare provider.'
