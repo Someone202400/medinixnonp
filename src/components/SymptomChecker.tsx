@@ -1,158 +1,176 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
+import { Brain } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 
-interface Diagnosis {
-  condition: string;
+interface Condition {
+  name: string;
   probability: number;
-  treatment: string;
+  description: string;
 }
 
-const SymptomChecker: React.FC = () => {
+interface AnalysisResult {
+  conditions: Condition[];
+  nextSteps: string[];
+  disclaimer: string;
+}
+
+const SymptomChecker = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { t } = useTranslation();
   const [symptoms, setSymptoms] = useState('');
-  const [results, setResults] = useState<Diagnosis[]>([]);
-  const [error, setError] = useState('');
+  const [result, setResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async () => {
-    setError('');
-    setResults([]);
-    setLoading(true);
-
+  const analyzeSymptoms = async () => {
     if (!symptoms.trim()) {
-      setError('Please enter at least one symptom (e.g., fever, cough).');
-      setLoading(false);
+      toast({
+        title: "Please enter symptoms",
+        description: "Describe your symptoms to get an AI analysis.",
+        variant: "destructive"
+      });
       return;
     }
 
-    const symptomList = symptoms.split(',').map(s => s.trim()).filter(s => s);
-    console.log('Submitting symptoms:', symptomList);
-
+    setLoading(true);
     try {
-      // Option 1: Infermedica API (uncomment and configure with your credentials)
-      /*
-      const response = await axios.post(
-        'https://api.infermedica.com/v3/diagnosis',
-        {
-          sex: 'unknown', // Adjust or collect from user
-          age: { value: 30 }, // Default or collect from user
-          symptoms: symptomList.map(s => ({
-            id: mapSymptomToId(s), // Map symptom to Infermedica ID
-            choice_id: 'present',
-          })),
-        },
-        {
-          headers: {
-            'App-Id': import.meta.env.VITE_INFERMEDICA_APP_ID,
-            'App-Key': import.meta.env.VITE_INFERMEDICA_APP_KEY,
-            'Content-Type': 'application/json',
-          },
+      const { data, error } = await supabase.functions.invoke('ai-symptom-analysis', {
+        body: {
+          symptoms,
+          userId: user?.id
         }
-      );
+      });
 
-      const diagnoses = response.data.conditions.map((c: any) => ({
-        condition: c.name,
-        probability: c.probability,
-        treatment: getTreatmentForCondition(c.name), // Custom function to map treatments
-      }));
+      if (error) throw error;
 
-      if (diagnoses.length === 0) {
-        throw new Error('No conditions found for the provided symptoms.');
-      }
-
-      setResults(diagnoses);
-      */
-
-      // Option 2: Rule-Based Fallback (use if no API)
-      const diagnoses = symptomList.includes('fever') && symptomList.includes('cough')
-        ? [
-            { condition: 'Flu', probability: 0.8, treatment: 'Rest, hydration, over-the-counter flu medication (e.g., DayQuil). Consult a doctor if symptoms worsen.' },
-            { condition: 'COVID-19', probability: 0.6, treatment: 'Isolate, monitor symptoms, test for COVID-19. Seek medical advice if breathing difficulties occur.' },
-          ]
-        : symptomList.includes('fever')
-        ? [{ condition: 'Infection', probability: 0.7, treatment: 'Rest, hydration, possibly antibiotics if bacterial. Consult a doctor for diagnosis.' }]
-        : symptomList.includes('cough')
-        ? [{ condition: 'Respiratory Issue', probability: 0.65, treatment: 'Use a humidifier, over-the-counter cough syrup. See a doctor if persistent.' }]
-        : [{ condition: 'Unknown Condition', probability: 0.5, treatment: 'Consult a doctor for a professional evaluation.' }];
-
-      setResults(diagnoses);
+      setResult(data);
     } catch (error) {
-      console.error('Symptom Checker error:', error);
-      setError('Cannot check symptoms at this time. Please try again later or consult a doctor.');
+      console.error('Error analyzing symptoms:', error);
+      toast({
+        title: "Analysis Error",
+        description: "Unable to analyze symptoms. Please try again or contact a healthcare provider.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper function to map symptoms to Infermedica IDs (simplified)
-  const mapSymptomToId = (symptom: string): string => {
-    const symptomMap: { [key: string]: string } = {
-      fever: 's_10',
-      cough: 's_11',
-      headache: 's_12',
-      // Add more mappings based on Infermedica's symptom database
-    };
-    return symptomMap[symptom.toLowerCase()] || 'unknown';
+  const resetChecker = () => {
+    setSymptoms('');
+    setResult(null);
   };
 
-  // Helper function to map conditions to treatments (simplified)
-  const getTreatmentForCondition = (condition: string): string => {
-    const treatmentMap: { [key: string]: string } = {
-      Flu: 'Rest, hydration, over-the-counter flu medication (e.g., DayQuil). Consult a doctor if symptoms worsen.',
-      'COVID-19': 'Isolate, monitor symptoms, test for COVID-19. Seek medical advice if breathing difficulties occur.',
-      Infection: 'Rest, hydration, possibly antibiotics if bacterial. Consult a doctor for diagnosis.',
-      'Respiratory Issue': 'Use a humidifier, over-the-counter cough syrup. See a doctor if persistent.',
-      // Add more mappings based on your needs
-    };
-    return treatmentMap[condition] || 'Consult a doctor for a professional evaluation.';
-  };
+  if (loading) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-8">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+            <Brain className="h-8 w-8 text-primary mx-auto mb-4 animate-pulse" />
+            <p className="text-lg font-medium">{t('symptomChecker.analyzing')}</p>
+            <p className="text-sm text-muted-foreground mt-2">AI is analyzing your symptoms...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
+  if (result) {
+    return (
+      <Card className="w-full max-w-4xl mx-auto border-2">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-3 text-xl">
+            <Brain className="h-6 w-6 text-primary" />
+            AI Symptom Analysis Results
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Possible Conditions */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Possible Conditions:</h3>
+            <div className="grid gap-3">
+              {result.conditions.map((condition, index) => (
+                <div key={index} className="p-4 border rounded-lg bg-card">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{condition.name}</h4>
+                    <Badge variant="secondary">{condition.probability}% likelihood</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">{condition.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Next Steps */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-lg">Next Steps:</h3>
+            <ul className="space-y-2">
+              {result.nextSteps.map((step, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-foreground">{step}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="flex gap-3">
+            <Button onClick={resetChecker} variant="outline" className="flex-1">
+              New Analysis
+            </Button>
+          </div>
+
+          <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+            <strong>Disclaimer:</strong> {result.disclaimer}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Initial symptom input stage
   return (
-    <Card className="w-full max-w-2xl bg-white/90 backdrop-blur-md shadow-lg">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-indigo-600">
-          AI Symptom Checker
+        <CardTitle className="flex items-center gap-2 text-xl">
+          <Brain className="h-6 w-6 text-primary" />
+          {t('symptomChecker.title')}
         </CardTitle>
-        <p className="text-sm text-gray-600">
-          Enter your symptoms to find possible conditions and treatments. This tool is for informational purposes only and not a substitute for professional medical advice. Always consult a doctor for a definitive diagnosis.
+        <p className="text-muted-foreground">
+          {t('symptomChecker.description')}
         </p>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         <div className="space-y-4">
-          <Input
+          <label className="text-sm font-medium">
+            {t('symptomChecker.enterSymptoms')}
+          </label>
+          <Textarea
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
-            placeholder="Enter symptoms (e.g., fever, cough, headache)"
-            className="w-full"
-            disabled={loading}
+            placeholder="e.g., I have a headache and feel dizzy"
+            className="min-h-[120px]"
           />
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-indigo-600 hover:bg-indigo-700"
+          <Button 
+            onClick={analyzeSymptoms}
+            disabled={!symptoms.trim() || loading}
+            className="w-full"
+            size="lg"
           >
-            {loading ? 'Checking...' : 'Check Symptoms'}
+            <Brain className="h-4 w-4 mr-2" />
+            {loading ? t('symptomChecker.analyzing') : t('symptomChecker.analyze')}
           </Button>
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          {results.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold text-gray-700">Possible Conditions and Treatments:</h3>
-              <ul className="list-disc pl-5 mt-2 text-gray-600">
-                {results.map((result, index) => (
-                  <li key={index}>
-                    <strong>{result.condition}</strong> (Probability: {(result.probability * 100).toFixed(1)}%): {result.treatment}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        </div>
+
+        <div className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">
+          <strong>Disclaimer:</strong> {t('symptomChecker.disclaimer')}
         </div>
       </CardContent>
     </Card>
