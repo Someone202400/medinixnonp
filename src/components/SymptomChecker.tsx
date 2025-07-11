@@ -48,26 +48,28 @@ const SymptomChecker = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        const errorResponse = error?.context?.response ? await error.context.response.json() : null;
+        console.log('Supabase function error response:', errorResponse); // Debug log
+        throw new Error(errorResponse?.message || error.message || 'Unknown error');
+      }
+
+      console.log('Supabase function data:', data); // Debug log
+      if (!data?.conditions || !data?.nextSteps || !data?.disclaimer) {
+        throw new Error('Invalid response format from AI');
+      }
 
       setResult(data);
     } catch (error) {
-      // Suppress console logging for known errors
-      if (error.message.includes('FunctionsHttpError')) {
-        const response = await error.response?.json();
-        toast({
-          title: "Analysis Failed",
-          description: response?.message || "Unable to analyze symptoms. Please try again or consult a healthcare provider.",
-          variant: "destructive"
-        });
-      } else {
-        console.error('Unexpected frontend error:', error);
-        toast({
-          title: "Analysis Failed",
-          description: "An unexpected error occurred. Please try again or contact support.",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Analysis Failed",
+        description: error.message.includes('rate_limit_exceeded')
+          ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later.'
+          : error.message.includes('No symptoms provided')
+          ? 'Please provide symptoms to analyze.'
+          : error.message || 'Unable to analyze symptoms. Please try again or consult a healthcare provider.',
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -108,7 +110,7 @@ const SymptomChecker = () => {
                 <div key={index} className="p-4 border rounded-lg bg-card">
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-medium">{condition.name}</h4>
-                    <Badge variant="secondary">{condition.probability}%</Badge>
+                    <Badge variant="secondary">{Math.round(condition.probability * 100)}%</Badge>
                   </div>
                   <p className="text-sm text-muted-foreground">{condition.description}</p>
                 </div>
