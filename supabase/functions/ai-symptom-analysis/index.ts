@@ -73,7 +73,7 @@ Return JSON:
           }
         ],
         temperature: 0.5,
-        max_tokens: 500, // Optimized for efficiency
+        max_tokens: 500,
       }),
     });
 
@@ -113,17 +113,22 @@ Return JSON:
       };
     }
 
-    const { error: dbError } = await supabase
-      .from('symptom_sessions')
-      .insert({
-        user_id: userId,
-        symptoms: [symptoms],
-        ai_analysis: analysisResult,
-      });
+    // Attempt to save to database, but don't fail the request if it errors
+    try {
+      const { error: dbError } = await supabase
+        .from('symptom_sessions')
+        .insert({
+          user_id: userId || 'anonymous',
+          symptoms: [symptoms],
+          ai_analysis: analysisResult,
+        });
 
-    if (dbError) {
-      console.error('Database error:', dbError.message);
-      throw new Error(`Database operation failed: ${dbError.message}`);
+      if (dbError) {
+        console.error('Database error:', dbError.message);
+        // Log but don't throw to allow analysis to be returned
+      }
+    } catch (dbError) {
+      console.error('Unexpected database error:', dbError.message);
     }
 
     return new Response(JSON.stringify(analysisResult), {
@@ -137,8 +142,8 @@ Return JSON:
         error: 'Analysis failed',
         message: error.message.includes('rate_limit_exceeded') 
           ? 'Symptom analysis is temporarily unavailable due to API limits. Please try again later or consult a healthcare provider.'
-          : error.message.includes('Database operation failed')
-          ? 'Unable to save analysis data. Please try again or consult a healthcare provider.'
+          : error.message.includes('No symptoms provided')
+          ? 'Please provide symptoms to analyze.'
           : 'Unable to analyze symptoms. Please try again or consult a healthcare provider.'
       }),
       {
