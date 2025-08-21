@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -54,9 +54,12 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          image_url: string | null
           medication_id: string
           notes: string | null
+          priority_level: string | null
           scheduled_time: string
+          special_instructions: string | null
           status: string
           taken_at: string | null
           user_id: string
@@ -64,9 +67,12 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
+          image_url?: string | null
           medication_id: string
           notes?: string | null
+          priority_level?: string | null
           scheduled_time: string
+          special_instructions?: string | null
           status?: string
           taken_at?: string | null
           user_id: string
@@ -74,9 +80,12 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
+          image_url?: string | null
           medication_id?: string
           notes?: string | null
+          priority_level?: string | null
           scheduled_time?: string
+          special_instructions?: string | null
           status?: string
           taken_at?: string | null
           user_id?: string
@@ -136,6 +145,105 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_deliveries: {
+        Row: {
+          attempt_count: number | null
+          channel: string
+          created_at: string
+          delivered_at: string | null
+          delivery_status: string
+          error_message: string | null
+          id: string
+          last_attempt_at: string | null
+          metadata: Json | null
+          notification_id: string
+          user_id: string
+        }
+        Insert: {
+          attempt_count?: number | null
+          channel: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          metadata?: Json | null
+          notification_id: string
+          user_id: string
+        }
+        Update: {
+          attempt_count?: number | null
+          channel?: string
+          created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string
+          error_message?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          metadata?: Json | null
+          notification_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          adherence_reports: boolean | null
+          caregiver_id: string | null
+          created_at: string
+          critical_override: boolean | null
+          email_notifications_enabled: boolean | null
+          emergency_alerts: boolean | null
+          id: string
+          medication_reminders: boolean | null
+          notification_frequency: string | null
+          preferred_channels: Json | null
+          push_notifications_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          sms_notifications_enabled: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          adherence_reports?: boolean | null
+          caregiver_id?: string | null
+          created_at?: string
+          critical_override?: boolean | null
+          email_notifications_enabled?: boolean | null
+          emergency_alerts?: boolean | null
+          id?: string
+          medication_reminders?: boolean | null
+          notification_frequency?: string | null
+          preferred_channels?: Json | null
+          push_notifications_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          sms_notifications_enabled?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          adherence_reports?: boolean | null
+          caregiver_id?: string | null
+          created_at?: string
+          critical_override?: boolean | null
+          email_notifications_enabled?: boolean | null
+          emergency_alerts?: boolean | null
+          id?: string
+          medication_reminders?: boolean | null
+          notification_frequency?: string | null
+          preferred_channels?: Json | null
+          push_notifications_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          sms_notifications_enabled?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           caregiver_id: string | null
@@ -184,6 +292,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          language: string | null
           notification_preferences: Json | null
           phone_number: string | null
           push_notifications_enabled: boolean | null
@@ -195,6 +304,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          language?: string | null
           notification_preferences?: Json | null
           phone_number?: string | null
           push_notifications_enabled?: boolean | null
@@ -206,6 +316,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          language?: string | null
           notification_preferences?: Json | null
           phone_number?: string | null
           push_notifications_enabled?: boolean | null
@@ -247,33 +358,114 @@ export type Database = {
         }
         Relationships: []
       }
+      symptom_questionnaires: {
+        Row: {
+          activity_limitations: string[] | null
+          age: number | null
+          associated_symptoms: string[] | null
+          completed_at: string | null
+          created_at: string
+          gender: string | null
+          id: string
+          medical_history: Json | null
+          pain_radiation: boolean | null
+          pain_type: string[] | null
+          primary_symptom_location: string | null
+          questionnaire_data: Json | null
+          recent_events: string[] | null
+          session_id: string
+          severity_rating: number | null
+          symptom_duration: string | null
+          symptom_progression: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_limitations?: string[] | null
+          age?: number | null
+          associated_symptoms?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          medical_history?: Json | null
+          pain_radiation?: boolean | null
+          pain_type?: string[] | null
+          primary_symptom_location?: string | null
+          questionnaire_data?: Json | null
+          recent_events?: string[] | null
+          session_id: string
+          severity_rating?: number | null
+          symptom_duration?: string | null
+          symptom_progression?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_limitations?: string[] | null
+          age?: number | null
+          associated_symptoms?: string[] | null
+          completed_at?: string | null
+          created_at?: string
+          gender?: string | null
+          id?: string
+          medical_history?: Json | null
+          pain_radiation?: boolean | null
+          pain_type?: string[] | null
+          primary_symptom_location?: string | null
+          questionnaire_data?: Json | null
+          recent_events?: string[] | null
+          session_id?: string
+          severity_rating?: number | null
+          symptom_duration?: string | null
+          symptom_progression?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       symptom_sessions: {
         Row: {
           ai_analysis: Json | null
           created_at: string | null
-          id: string
-          recommendations: string | null
-          responses: Json
-          symptoms: Json
-          user_id: string
+          id: number
+          symptoms: string[] | null
+          user_id: string | null
         }
         Insert: {
           ai_analysis?: Json | null
           created_at?: string | null
-          id?: string
-          recommendations?: string | null
-          responses: Json
-          symptoms: Json
-          user_id: string
+          id?: never
+          symptoms?: string[] | null
+          user_id?: string | null
         }
         Update: {
           ai_analysis?: Json | null
           created_at?: string | null
-          id?: string
-          recommendations?: string | null
-          responses?: Json
-          symptoms?: Json
-          user_id?: string
+          id?: never
+          symptoms?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      translations: {
+        Row: {
+          id: number
+          key: string
+          language: string
+          value: string
+        }
+        Insert: {
+          id?: number
+          key: string
+          language: string
+          value: string
+        }
+        Update: {
+          id?: number
+          key?: string
+          language?: string
+          value?: string
         }
         Relationships: []
       }
