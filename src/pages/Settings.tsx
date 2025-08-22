@@ -15,7 +15,7 @@ import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/d
 import CaregiverManagement from '@/components/CaregiverManagement';
 import SystemTest from '@/components/SystemTest';
 import { useTranslation } from 'react-i18next';
-import { supportedLanguages } from '@/i18n';
+import { supportedLanguages } from '@/constants/languages';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { subscribeToPushNotifications, unsubscribeFromPushNotifications } from '@/utils/pushNotificationService';
 

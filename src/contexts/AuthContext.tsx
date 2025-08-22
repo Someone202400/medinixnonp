@@ -64,6 +64,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   .from('profiles')
                   .upsert({
                     id: session.user.id,
+                    email: session.user.email!,
                     full_name: userData.full_name,
                     phone_number: userData.phone_number,
                     notification_preferences: userData.notification_preferences || {

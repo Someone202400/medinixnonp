@@ -3,16 +3,16 @@ import { initReactI18next } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 
 const customBackend = {
-  type: 'backend',
-  init: (services, backendOptions, i18nextOptions) => {},
-  read: async (language, namespace, callback) => {
+  type: 'backend' as const,
+  init: (services: any, backendOptions: any, i18nextOptions: any) => {},
+  read: async (language: string, namespace: string, callback: (error: any, translations: any) => void) => {
     try {
       const { data, error } = await supabase
         .from('translations')
         .select('key, value')
         .eq('language', language);
       if (error) throw error;
-      const translations = data.reduce((acc, row) => {
+      const translations = data.reduce((acc: any, row: any) => {
         acc[row.key] = row.value;
         return acc;
       }, {});
