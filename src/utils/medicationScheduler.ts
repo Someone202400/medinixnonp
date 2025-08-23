@@ -148,8 +148,12 @@ export const generateDailyMedicationSchedule = async (userId: string, targetDate
 
       console.log(`Successfully generated ${scheduleEntries.length} medication schedule entries`);
       
-      // Schedule notifications for upcoming medications - fix the function call
-      await scheduleMedicationReminders(userId);
+      // Schedule notifications for upcoming medications
+      try {
+        await scheduleMedicationReminders(userId);
+      } catch (notificationError) {
+        console.error('Error scheduling notifications:', notificationError);
+      }
     } else {
       console.log('No new medication schedule entries needed');
     }
