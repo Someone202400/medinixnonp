@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -91,64 +90,8 @@ const NotificationManager: React.FC<NotificationManagerProps> = ({ children }) =
       )
       .subscribe();
 
-    // Set up real-time listener for caregiver notifications (if user is a caregiver)
-    const caregiverNotificationChannel = supabase
-      .channel('caregiver-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `type=eq.caregiver_notification`
-        },
-        async (payload) => {
-          const notification = payload.new as any;
-          
-          // Check if this notification is for a patient this user is caring for
-          const { data: caregivers } = await supabase
-            .from('caregivers')
-            .select('*')
-            .eq('email', user.email)
-            .eq('notifications_enabled', true);
-
-          if (caregivers && caregivers.length > 0) {
-            const isForThisCaregiver = caregivers.some(c => 
-              c.user_id === notification.user_id
-            );
-
-            if (isForThisCaregiver) {
-              console.log('Caregiver notification received:', notification);
-              
-              // Show browser notification
-              if (notificationPermission === 'granted') {
-                try {
-                  new Notification(notification.title, {
-                    body: notification.message,
-                    icon: '/favicon.ico',
-                    tag: notification.id,
-                    requireInteraction: true
-                  });
-                } catch (error) {
-                  console.error('Error showing caregiver browser notification:', error);
-                }
-              }
-              
-              // Show toast notification
-              toast({
-                title: notification.title,
-                description: notification.message,
-                variant: "default"
-              });
-            }
-          }
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(userNotificationChannel);
-      supabase.removeChannel(caregiverNotificationChannel);
     };
   }, [user, notificationPermission, toast]);
 

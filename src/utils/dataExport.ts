@@ -4,9 +4,9 @@ import { format } from 'date-fns';
 export interface ExportData {
   medications: any[];
   medicationLogs: any[];
-  caregivers: any[];
   profile: any;
   symptoms: any[];
+  adherenceReports: any[];
 }
 
 /**
@@ -22,9 +22,9 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
     const [
       medicationsResponse,
       logsResponse,
-      caregiversResponse,
       profileResponse,
-      symptomsResponse
+      symptomsResponse,
+      adherenceResponse
     ] = await Promise.all([
       supabase.from('medications').select('*').eq('user_id', userId),
       supabase
@@ -32,32 +32,32 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
         .select('*, medications (name, dosage)')
         .eq('user_id', userId)
         .order('scheduled_time', { ascending: false }),
-      supabase.from('caregivers').select('*').eq('user_id', userId),
       supabase.from('profiles').select('*').eq('id', userId).single(),
-      supabase.from('symptom_sessions').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+      supabase.from('symptom_sessions').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+      supabase.from('weekly_reports').select('*').eq('user_id', userId).order('created_at', { ascending: false })
     ]);
 
     // Log responses for debugging
     console.log('Medications Response:', medicationsResponse);
     console.log('Logs Response:', logsResponse);
-    console.log('Caregivers Response:', caregiversResponse);
     console.log('Profile Response:', profileResponse);
     console.log('Symptoms Response:', symptomsResponse);
+    console.log('Adherence Response:', adherenceResponse);
 
     // Check for errors in responses
     if (medicationsResponse.error) throw new Error(`Medications Error: ${medicationsResponse.error.message}`);
     if (logsResponse.error) throw new Error(`Logs Error: ${logsResponse.error.message}`);
-    if (caregiversResponse.error) throw new Error(`Caregivers Error: ${caregiversResponse.error.message}`);
     if (profileResponse.error) throw new Error(`Profile Error: ${profileResponse.error.message}`);
     if (symptomsResponse.error) throw new Error(`Symptoms Error: ${symptomsResponse.error.message}`);
+    if (adherenceResponse.error) throw new Error(`Adherence Error: ${adherenceResponse.error.message}`);
 
     // Construct export data with type safety
     const exportData: ExportData = {
       medications: Array.isArray(medicationsResponse.data) ? medicationsResponse.data : [],
       medicationLogs: Array.isArray(logsResponse.data) ? logsResponse.data : [],
-      caregivers: Array.isArray(caregiversResponse.data) ? caregiversResponse.data : [],
       profile: profileResponse.data || {},
-      symptoms: Array.isArray(symptomsResponse.data) ? symptomsResponse.data : []
+      symptoms: Array.isArray(symptomsResponse.data) ? symptomsResponse.data : [],
+      adherenceReports: Array.isArray(adherenceResponse.data) ? adherenceResponse.data : []
     };
 
     console.log('Data export completed successfully:', exportData);
@@ -68,9 +68,9 @@ export const exportUserData = async (userId: string): Promise<ExportData> => {
     return {
       medications: [],
       medicationLogs: [],
-      caregivers: [],
       profile: {},
-      symptoms: []
+      symptoms: [],
+      adherenceReports: []
     };
   }
 };
@@ -225,9 +225,9 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     const headers = {
       medications: ['id', 'name', 'dosage', 'frequency', 'user_id', 'created_at'],
       medicationLogs: ['id', 'medication_id', 'medications.name', 'medications.dosage', 'status', 'scheduled_time', 'taken_time', 'user_id'],
-      caregivers: ['id', 'name', 'email', 'phone', 'user_id', 'created_at'],
-      profile: ['id', 'email', 'first_name', 'last_name', 'date_of_birth', 'updated_at'],
-      symptoms: ['id', 'symptoms', 'severity', 'created_at', 'user_id']
+      profile: ['id', 'email', 'full_name', 'phone_number', 'updated_at'],
+      symptoms: ['id', 'symptoms', 'severity', 'created_at', 'user_id'],
+      adherenceReports: ['id', 'week_start', 'week_end', 'adherence_percentage', 'created_at']
     };
 
     // Convert data to CSV rows
@@ -267,22 +267,6 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
     });
     csvRows.push('');
 
-    // Caregivers
-    csvRows.push('Caregivers');
-    csvRows.push(headers.caregivers.join(','));
-    data.caregivers.forEach(caregiver => {
-      const row = [
-        escapeCSVValue(caregiver.id),
-        escapeCSVValue(caregiver.name),
-        escapeCSVValue(caregiver.email),
-        escapeCSVValue(caregiver.phone),
-        escapeCSVValue(caregiver.user_id),
-        escapeCSVValue(formatDate(caregiver.created_at))
-      ];
-      csvRows.push(row.join(','));
-    });
-    csvRows.push('');
-
     // Profile
     csvRows.push('Profile');
     csvRows.push(headers.profile.join(','));
@@ -290,9 +274,8 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
       const row = [
         escapeCSVValue(data.profile.id),
         escapeCSVValue(data.profile.email),
-        escapeCSVValue(data.profile.first_name),
-        escapeCSVValue(data.profile.last_name),
-        escapeCSVValue(formatDate(data.profile.date_of_birth)),
+        escapeCSVValue(data.profile.full_name),
+        escapeCSVValue(data.profile.phone_number),
         escapeCSVValue(formatDate(data.profile.updated_at))
       ];
       csvRows.push(row.join(','));
@@ -309,6 +292,21 @@ export const downloadDataAsCSV = (data: ExportData, filename?: string) => {
         escapeCSVValue(symptom.severity),
         escapeCSVValue(formatDate(symptom.created_at)),
         escapeCSVValue(symptom.user_id)
+      ];
+      csvRows.push(row.join(','));
+    });
+    csvRows.push('');
+
+    // Adherence Reports
+    csvRows.push('Adherence Reports');
+    csvRows.push(headers.adherenceReports.join(','));
+    data.adherenceReports.forEach(report => {
+      const row = [
+        escapeCSVValue(report.id),
+        escapeCSVValue(formatDate(report.week_start)),
+        escapeCSVValue(formatDate(report.week_end)),
+        escapeCSVValue(report.adherence_percentage),
+        escapeCSVValue(formatDate(report.created_at))
       ];
       csvRows.push(row.join(','));
     });

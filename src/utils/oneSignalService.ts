@@ -1,106 +1,52 @@
-// OneSignal Service for Push Notifications
-// Using dynamic import to handle missing types
+import OneSignal from 'onesignal-web-sdk';
 
-interface OneSignalSDK {
-  init: (config: any) => Promise<void>;
-  getNotificationPermission: () => Promise<string>;
-  showSlidedownPrompt: () => Promise<void>;
-  getPlayerId: () => Promise<string | null>;
-  setExternalUserId: (userId: string) => Promise<void>;
-  sendTags: (tags: any) => Promise<void>;
-  setSubscription: (enabled: boolean) => Promise<void>;
-  isPushNotificationsEnabled: () => Promise<boolean>;
-  on: (event: string, callback: Function) => void;
-}
-
-declare global {
-  interface Window {
-    OneSignal?: OneSignalSDK;
-  }
-  
-  interface ServiceWorkerGlobalScope {
-    clients: {
-      matchAll(): Promise<Array<{ postMessage: (data: any) => void }>>;
-      openWindow(url: string): Promise<any>;
-    };
-  }
-}
-
-const ONESIGNAL_APP_ID = 'acc6f6c2-0509-44f7-ae38-44f89323561a';
-
-interface NotificationOptions {
+interface MedicationNotificationOptions {
   title: string;
   message: string;
   medicationName?: string;
   dosage?: string;
   scheduledTime?: Date;
-  type: 'medication_reminder' | 'missed_medication' | 'adherence_report' | 'emergency';
-  actions?: Array<{
-    id: string;
-    title: string;
-    icon?: string;
-  }>;
-  urgency?: 'low' | 'normal' | 'high' | 'critical';
+  urgency?: 'normal' | 'high' | 'critical';
+  type?: 'reminder' | 'missed' | 'taken' | 'caregiver_alert';
 }
 
 class OneSignalService {
   private isInitialized = false;
-  private initPromise: Promise<void> | null = null;
-  private oneSignal: OneSignalSDK | null = null;
+  private appId = 'acc6f6c2-0509-44f7-ae38-44f89323561a';
 
-  async initialize(): Promise<void> {
-    if (this.isInitialized) return;
-    
-    if (this.initPromise) return this.initPromise;
+  async initialize(): Promise<boolean> {
+    if (this.isInitialized) {
+      console.log('OneSignal already initialized');
+      return true;
+    }
 
-    this.initPromise = this._initialize();
-    return this.initPromise;
-  }
-
-  private async _initialize(): Promise<void> {
     try {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-        console.warn('Push messaging is not supported');
-        return;
-      }
-
-      // Load OneSignal dynamically
-      if (!window.OneSignal) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
-        document.head.appendChild(script);
-        
-        await new Promise((resolve) => {
-          script.onload = resolve;
-        });
-      }
-
-      this.oneSignal = window.OneSignal!;
-
-      await this.oneSignal.init({
-        appId: ONESIGNAL_APP_ID,
-        safari_web_id: 'web.onesignal.auto.acc6f6c2-0509-44f7-ae38-44f89323561a',
+      console.log('Initializing OneSignal...');
+      
+      await OneSignal.init({
+        appId: this.appId,
+        safari_web_id: 'web.onesignal.auto.18e69830-6d73-4375-be32-8f9d9e45158e',
         notifyButton: {
-          enable: false
+          enable: true,
         },
         allowLocalhostAsSecureOrigin: true,
-        serviceWorkerParam: {
-          scope: '/'
-        },
-        serviceWorkerPath: 'OneSignalSDKWorker.js',
-        welcomeNotification: {
-          disable: true
-        },
+        autoRegister: false, // We'll register manually
+        autoResubscribe: true,
+        persistNotification: false,
         promptOptions: {
           slidedown: {
             prompts: [
               {
-                type: 'push',
-                autoPrompt: false,
+                type: "push", // current types are "push" & "category"
+                autoPrompt: true,
                 text: {
-                  actionMessage: 'We\'d like to send you medication reminders',
-                  acceptButton: 'Allow',
-                  cancelButton: 'No Thanks'
+                  actionMessage: "We'd like to send you medication reminders and important health notifications.",
+                  acceptButton: "Allow",
+                  cancelButton: "Cancel"
+                },
+                delay: {
+                  pageViews: 1,
+                  timeDelay: 20
                 }
               }
             ]
@@ -108,314 +54,238 @@ class OneSignalService {
         }
       });
 
-      // Set up notification click handlers
-      this.oneSignal.on('notificationClick', this.handleNotificationClick);
-      
       this.isInitialized = true;
       console.log('OneSignal initialized successfully');
-    } catch (error) {
-      console.error('Error initializing OneSignal:', error);
-      throw error;
-    }
-  }
-
-  async requestPermission(): Promise<boolean> {
-    try {
-      await this.initialize();
-      if (!this.oneSignal) return false;
       
-      const permission = await this.oneSignal.getNotificationPermission();
-      if (permission === 'granted') {
-        return true;
-      }
-
-      if (permission === 'default') {
-        await this.oneSignal.showSlidedownPrompt();
-        const newPermission = await this.oneSignal.getNotificationPermission();
-        return newPermission === 'granted';
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return false;
-    }
-  }
-
-  async subscribeUser(userId: string): Promise<boolean> {
-    try {
-      await this.initialize();
-      if (!this.oneSignal) return false;
+      // Set up notification click handlers
+      this.setupEventHandlers();
       
-      const hasPermission = await this.requestPermission();
-      if (!hasPermission) {
-        console.log('Notification permission not granted');
-        return false;
-      }
-
-      const playerId = await this.oneSignal.getPlayerId();
-      if (!playerId) {
-        console.error('Failed to get OneSignal player ID');
-        return false;
-      }
-
-      // Set external user ID for targeting
-      await this.oneSignal.setExternalUserId(userId);
-      
-      // Add tags for better targeting
-      await this.oneSignal.sendTags({
-        user_id: userId,
-        app_type: 'medication_manager',
-        subscription_date: new Date().toISOString()
-      });
-
-      console.log('User subscribed to OneSignal successfully:', playerId);
       return true;
     } catch (error) {
-      console.error('Error subscribing user to OneSignal:', error);
+      console.error('Failed to initialize OneSignal:', error);
+      return false;
+    }
+  }
+
+  private setupEventHandlers(): void {
+    try {
+      OneSignal.on('subscriptionChange', (isSubscribed) => {
+        console.log('OneSignal subscription changed:', isSubscribed);
+      });
+
+      OneSignal.on('notificationPermissionChange', (permissionChange) => {
+        console.log('OneSignal permission changed:', permissionChange);
+      });
+
+      OneSignal.on('notificationDisplay', (event) => {
+        console.log('OneSignal notification displayed:', event);
+      });
+
+      OneSignal.on('notificationDismiss', (event) => {
+        console.log('OneSignal notification dismissed:', event);
+      });
+    } catch (error) {
+      console.error('Error setting up OneSignal event handlers:', error);
+    }
+  }
+
+  async subscribeUser(userId?: string): Promise<boolean> {
+    try {
+      if (!this.isInitialized) {
+        const initialized = await this.initialize();
+        if (!initialized) return false;
+      }
+
+      // Check if we have permission
+      const permission = await OneSignal.getNotificationPermission();
+      if (permission !== 'granted') {
+        console.log('Requesting notification permission...');
+        const granted = await OneSignal.registerForPushNotifications();
+        if (!granted) {
+          console.log('User denied notification permission');
+          return false;
+        }
+      }
+
+      // Subscribe the user
+      await OneSignal.showSlidedownPrompt();
+      
+      if (userId) {
+        await OneSignal.setExternalUserId(userId);
+        console.log('OneSignal external user ID set:', userId);
+      }
+
+      const subscriptionId = await OneSignal.getSubscription();
+      console.log('OneSignal subscription successful:', subscriptionId);
+      return true;
+    } catch (error) {
+      console.error('Error subscribing to OneSignal:', error);
       return false;
     }
   }
 
   async unsubscribeUser(): Promise<boolean> {
     try {
-      await this.initialize();
-      if (!this.oneSignal) return false;
+      if (!this.isInitialized) return true; // Already not subscribed
       
-      await this.oneSignal.setSubscription(false);
-      console.log('User unsubscribed from OneSignal');
+      await OneSignal.setSubscription(false);
+      console.log('OneSignal unsubscribed successfully');
       return true;
     } catch (error) {
-      console.error('Error unsubscribing user from OneSignal:', error);
+      console.error('Error unsubscribing from OneSignal:', error);
       return false;
     }
   }
 
-  async sendMedicationReminder(options: NotificationOptions): Promise<void> {
+  async sendNotification(options: MedicationNotificationOptions): Promise<void> {
+    if (!this.isInitialized) {
+      console.log('OneSignal not initialized, falling back to browser notifications');
+      await this.sendLocalNotification(options);
+      return;
+    }
+
     try {
-      await this.initialize();
-
-      const actions = options.actions || [
-        { id: 'take', title: 'Mark as Taken' },
-        { id: 'snooze', title: 'Snooze 15min' },
-        { id: 'skip', title: 'Skip Today' }
-      ];
-
-      const notificationData = {
-        headings: { en: options.title },
-        contents: { en: options.message },
-        data: {
-          type: options.type,
-          medicationName: options.medicationName,
-          dosage: options.dosage,
-          scheduledTime: options.scheduledTime?.toISOString(),
-          urgency: options.urgency || 'normal'
-        },
-        web_buttons: actions.map(action => ({
-          id: action.id,
-          text: action.title,
-          icon: action.icon || 'https://via.placeholder.com/16x16'
-        })),
-        chrome_web_icon: '/favicon.ico',
-        chrome_web_badge: '/favicon.ico',
-        require_interaction: options.urgency === 'critical',
-        priority: this.getPriority(options.urgency || 'normal'),
-        ttl: options.urgency === 'critical' ? 3600 : 1800, // Critical: 1 hour, Normal: 30 minutes
-      };
-
-      // This would typically be sent from the backend
-      console.log('Medication reminder data prepared:', notificationData);
+      // OneSignal notifications are sent from the server
+      // This method would be used to trigger server-side notifications
+      console.log('OneSignal notification request:', options);
+      
+      // For now, we'll use local notifications as fallback
+      await this.sendLocalNotification(options);
     } catch (error) {
-      console.error('Error sending medication reminder:', error);
+      console.error('Error sending OneSignal notification:', error);
+      // Fallback to local notification
+      await this.sendLocalNotification(options);
     }
   }
 
-  async sendLocalNotification(options: NotificationOptions): Promise<void> {
-    try {
-      if (!('Notification' in window)) {
-        console.warn('This browser does not support notifications');
-        return;
-      }
-
+  private async sendLocalNotification(options: MedicationNotificationOptions): Promise<void> {
+    // Request permission if needed
+    if (Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        console.warn('Notification permission not granted');
+        console.log('Notification permission denied');
         return;
       }
-
-      const actions = options.actions || [
-        { id: 'take', title: 'Mark as Taken' },
-        { id: 'snooze', title: 'Snooze 15min' }
-      ];
-
-      // For browsers that support service workers
-      if ('serviceWorker' in navigator) {
-        const registration = await navigator.serviceWorker.ready;
-        
-        await registration.showNotification(options.title, {
-          body: options.message,
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
-          tag: `medication-${options.medicationName?.replace(/\s+/g, '-').toLowerCase()}`,
-          requireInteraction: options.urgency === 'critical',
-          data: {
-            type: options.type,
-            medicationName: options.medicationName,
-            dosage: options.dosage,
-            scheduledTime: options.scheduledTime?.toISOString(),
-            urgency: options.urgency || 'normal'
-          }
-        });
-          },
-          vibrate: options.urgency === 'critical' ? [200, 100, 200, 100, 200] : [200, 100, 200]
-        });
-      } else {
-        // Fallback for browsers without service worker support
-        new Notification(options.title, {
-          body: options.message,
-          icon: '/favicon.ico',
-          tag: `medication-${options.medicationName?.replace(/\s+/g, '-').toLowerCase()}`,
-        });
-      }
-
-      console.log('Local notification sent:', options.title);
-    } catch (error) {
-      console.error('Error sending local notification:', error);
     }
-  }
 
-  private handleNotificationClick = (event: any) => {
-    console.log('Notification clicked:', event);
-    
-    const { actionId, data } = event;
-    
-    if (actionId === 'take') {
-      // Handle "Mark as Taken" action
-      this.handleMedicationTaken(data);
-    } else if (actionId === 'snooze') {
-      // Handle "Snooze" action
-      this.handleMedicationSnooze(data);
-    } else if (actionId === 'skip') {
-      // Handle "Skip" action
-      this.handleMedicationSkip(data);
-    } else {
-      // Default action - open app
-      this.openApp();
-    }
-  };
-
-  private async handleMedicationTaken(data: any) {
-    try {
-      // Send message to main app
-      if ('serviceWorker' in navigator) {
-        const clients = await (self as any).clients?.matchAll() || [];
-        clients.forEach((client: any) => {
-          client.postMessage({
-            type: 'MEDICATION_TAKEN',
+    if (Notification.permission === 'granted') {
+      try {
+        // For browsers that support service workers
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          
+          await registration.showNotification(options.title, {
+            body: options.message,
+            icon: '/favicon.ico',
+            badge: '/favicon.ico',
+            tag: `medication-${options.medicationName?.replace(/\s+/g, '-').toLowerCase()}`,
+            requireInteraction: options.urgency === 'critical',
             data: {
-              medicationName: data.medicationName,
-              dosage: data.dosage,
-              takenAt: new Date().toISOString()
+              type: options.type,
+              medicationName: options.medicationName,
+              dosage: options.dosage,
+              scheduledTime: options.scheduledTime?.toISOString(),
+              urgency: options.urgency || 'normal'
             }
           });
-        });
-      }
-      
-      console.log('Medication marked as taken from notification');
-    } catch (error) {
-      console.error('Error handling medication taken:', error);
-    }
-  }
-
-  private async handleMedicationSnooze(data: any) {
-    try {
-      // Reschedule notification for 15 minutes later
-      setTimeout(() => {
-        this.sendLocalNotification({
-          title: `Reminder: ${data.medicationName}`,
-          message: `Time to take your ${data.medicationName} (${data.dosage}) - Snoozed reminder`,
-          medicationName: data.medicationName,
-          dosage: data.dosage,
-          type: 'medication_reminder',
-          urgency: 'high'
-        });
-      }, 15 * 60 * 1000); // 15 minutes
-      
-      console.log('Medication reminder snoozed for 15 minutes');
-    } catch (error) {
-      console.error('Error handling medication snooze:', error);
-    }
-  }
-
-  private async handleMedicationSkip(data: any) {
-    try {
-      // Send message to main app to mark as skipped
-      if ('serviceWorker' in navigator) {
-        const clients = await (self as any).clients?.matchAll() || [];
-        clients.forEach((client: any) => {
-          client.postMessage({
-            type: 'MEDICATION_SKIPPED',
-            data: {
-              medicationName: data.medicationName,
-              dosage: data.dosage,
-              skippedAt: new Date().toISOString()
-            }
+        } else {
+          // Fallback for browsers without service worker support
+          new Notification(options.title, {
+            body: options.message,
+            icon: '/favicon.ico',
+            tag: `medication-${options.medicationName?.replace(/\s+/g, '-').toLowerCase()}`,
           });
-        });
+        }
+
+        console.log('Local notification sent:', options.title);
+      } catch (error) {
+        console.error('Error sending local notification:', error);
       }
-      
-      console.log('Medication marked as skipped from notification');
-    } catch (error) {
-      console.error('Error handling medication skip:', error);
     }
   }
 
-  private openApp() {
+  async getUserId(): Promise<string | null> {
     try {
-      // Try to focus existing window or open new one
-      if (typeof window !== 'undefined') {
-        window.focus();
-      } else {
-        // From service worker context
-        (self as any).clients?.openWindow('/dashboard');
-      }
+      if (!this.isInitialized) return null;
+      return await OneSignal.getExternalUserId();
     } catch (error) {
-      console.error('Error opening app:', error);
-    }
-  }
-
-  private getPriority(urgency: string): number {
-    switch (urgency) {
-      case 'critical': return 10;
-      case 'high': return 7;
-      case 'normal': return 5;
-      case 'low': return 3;
-      default: return 5;
+      console.error('Error getting OneSignal user ID:', error);
+      return null;
     }
   }
 
   async isSubscribed(): Promise<boolean> {
     try {
-      await this.initialize();
-      if (!this.oneSignal) return false;
-      return await this.oneSignal.isPushNotificationsEnabled();
+      if (!this.isInitialized) return false;
+      const subscription = await OneSignal.getSubscription();
+      return subscription !== null;
     } catch (error) {
-      console.error('Error checking subscription status:', error);
+      console.error('Error checking OneSignal subscription status:', error);
       return false;
     }
   }
 
-  async getPlayerId(): Promise<string | null> {
+  async getSubscriptionId(): Promise<string | null> {
     try {
-      await this.initialize();
-      if (!this.oneSignal) return null;
-      return await this.oneSignal.getPlayerId();
+      if (!this.isInitialized) return null;
+      const subscription = await OneSignal.getSubscription();
+      return subscription?.id || null;
     } catch (error) {
-      console.error('Error getting player ID:', error);
+      console.error('Error getting OneSignal subscription ID:', error);
       return null;
     }
   }
+
+  // Medication-specific notification methods
+  async sendMedicationReminder(medicationName: string, dosage: string, scheduledTime: Date): Promise<void> {
+    await this.sendNotification({
+      title: `Time to take ${medicationName}`,
+      message: `Take ${dosage} now. Scheduled for ${scheduledTime.toLocaleTimeString()}`,
+      medicationName,
+      dosage,
+      scheduledTime,
+      urgency: 'normal',
+      type: 'reminder'
+    });
+  }
+
+  async sendMissedMedicationAlert(medicationName: string, dosage: string, scheduledTime: Date): Promise<void> {
+    await this.sendNotification({
+      title: `Missed: ${medicationName}`,
+      message: `You haven't taken your ${dosage} yet. It was scheduled for ${scheduledTime.toLocaleTimeString()}`,
+      medicationName,
+      dosage,
+      scheduledTime,
+      urgency: 'high',
+      type: 'missed'
+    });
+  }
+
+  async sendCriticalMedicationAlert(medicationName: string, dosage: string): Promise<void> {
+    await this.sendNotification({
+      title: `⚠️ Critical: ${medicationName}`,
+      message: `This is a critical medication (${dosage}). Please take it immediately and contact your healthcare provider if needed.`,
+      medicationName,
+      dosage,
+      urgency: 'critical',
+      type: 'reminder'
+    });
+  }
+
+  // Utility methods
+  async testNotification(): Promise<void> {
+    await this.sendNotification({
+      title: 'Test Notification',
+      message: 'MedCare notifications are working correctly! 💊',
+      urgency: 'normal',
+      type: 'reminder'
+    });
+  }
 }
 
+// Export singleton instance
 export const oneSignalService = new OneSignalService();
-export default oneSignalService;
+
+// Export class for testing
+export { OneSignalService };
+export type { MedicationNotificationOptions };

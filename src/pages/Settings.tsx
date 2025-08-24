@@ -402,9 +402,9 @@ const Settings = () => {
                       Data Visibility
                     </h3>
                   </div>
-                  <p className="text-sm text-blue-700 mb-3">
-                    Your medical data is private and only visible to you. Caregivers you add can only see what you explicitly share.
-                  </p>
+                   <p className="text-sm text-blue-700 mb-3">
+                     Your medical data is private and only visible to you.
+                   </p>
                   <div className="text-xs text-blue-600 bg-blue-100 p-2 rounded">
                     ✓ End-to-end encryption for sensitive data<br/>
                     ✓ HIPAA-compliant data storage<br/>
@@ -412,11 +412,11 @@ const Settings = () => {
                   </div>
                 </div>
 
-                <div className="p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border-2 border-green-200">
-                  <h3 className="font-semibold text-green-800 mb-2">📁 Data Export</h3>
-                  <p className="text-sm text-green-700 mb-3">
-                    Export all your medication history, caregiver information, and health data.
-                  </p>
+                 <div className="p-4 bg-gradient-to-r from-green-50 to-teal-50 rounded-xl border-2 border-green-200">
+                   <h3 className="font-semibold text-green-800 mb-2">📁 Data Export</h3>
+                   <p className="text-sm text-green-700 mb-3">
+                     Export all your medication history and health data.
+                   </p>
                   <div className="flex gap-2">
                     <Button 
                       variant="outline" 
@@ -453,9 +453,6 @@ const Settings = () => {
               </div>
             </CardContent>
           </Card>
-
-          {/* Caregiver Management */}
-          <CaregiverManagement />
 
           {/* System Test */}
           <SystemTest />

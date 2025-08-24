@@ -14,42 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      caregivers: {
-        Row: {
-          created_at: string
-          email: string | null
-          id: string
-          name: string
-          notifications_enabled: boolean | null
-          phone_number: string | null
-          relationship: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          name: string
-          notifications_enabled?: boolean | null
-          phone_number?: string | null
-          relationship?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          email?: string | null
-          id?: string
-          name?: string
-          notifications_enabled?: boolean | null
-          phone_number?: string | null
-          relationship?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       medication_logs: {
         Row: {
           created_at: string | null
@@ -246,7 +210,6 @@ export type Database = {
       }
       notifications: {
         Row: {
-          caregiver_id: string | null
           channels: Json | null
           created_at: string | null
           id: string
@@ -259,7 +222,6 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          caregiver_id?: string | null
           channels?: Json | null
           created_at?: string | null
           id?: string
@@ -272,7 +234,6 @@ export type Database = {
           user_id: string
         }
         Update: {
-          caregiver_id?: string | null
           channels?: Json | null
           created_at?: string | null
           id?: string

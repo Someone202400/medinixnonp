@@ -103,12 +103,7 @@ const PushNotificationManager = () => {
         });
 
         // Send test notification
-        await oneSignalService.sendLocalNotification({
-          title: "Welcome to MedCare Notifications! 💊",
-          message: "You'll receive medication reminders exactly when they're due.",
-          type: 'medication_reminder',
-          urgency: 'normal'
-        });
+        await oneSignalService.testNotification();
       } else {
         toast({
           title: "Subscription Failed",
@@ -197,19 +192,7 @@ const PushNotificationManager = () => {
 
   const sendTestNotification = async () => {
     try {
-      await oneSignalService.sendLocalNotification({
-        title: "Test Medication Reminder 💊",
-        message: "This is how your medication reminders will look!",
-        medicationName: "Sample Medication",
-        dosage: "100mg",
-        type: 'medication_reminder',
-        urgency: 'normal',
-        actions: [
-          { id: 'take', title: 'Mark as Taken' },
-          { id: 'snooze', title: 'Snooze 15min' },
-          { id: 'skip', title: 'Skip Today' }
-        ]
-      });
+      await oneSignalService.testNotification();
 
       toast({
         title: "Test Notification Sent! 📱",
