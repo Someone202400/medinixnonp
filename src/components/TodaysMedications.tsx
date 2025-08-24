@@ -131,7 +131,7 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
 
       toast({
         title: "Medication taken! 💊",
-        description: `${medication.medication_name} marked as taken. Caregivers have been notified.`,
+        description: `${medication.medication_name} marked as taken successfully.`,
       });
 
       fetchTodaysMedications();

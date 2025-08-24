@@ -12,7 +12,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { exportUserData, downloadDataAsJSON, downloadDataAsCSV } from '@/utils/dataExport';
-import CaregiverManagement from '@/components/CaregiverManagement';
 import SystemTest from '@/components/SystemTest';
 import { useTranslation } from 'react-i18next';
 import { supportedLanguages } from '@/constants/languages';

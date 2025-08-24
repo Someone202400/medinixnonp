@@ -20,8 +20,8 @@ import {
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
-import CaregiverManagement from '@/components/CaregiverManagement';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
+
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,34 +29,15 @@ const Dashboard = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [adherenceRefreshTrigger, setAdherenceRefreshTrigger] = useState(0);
-  const [caregiverCount, setCaregiverCount] = useState(0);
-  const [showCaregiverDialog, setShowCaregiverDialog] = useState(false);
 
   // Start notification services when dashboard loads
   useEffect(() => {
     startNotificationServices();
-    fetchCaregiverCount();
     
     return () => {
       stopNotificationServices();
     };
   }, [user]);
-
-  const fetchCaregiverCount = async () => {
-    if (!user?.id) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('caregivers')
-        .select('id')
-        .eq('user_id', user.id);
-      
-      if (error) throw error;
-      setCaregiverCount(data?.length || 0);
-    } catch (error) {
-      console.error('Error fetching caregiver count:', error);
-    }
-  };
 
   const handleMedicationTaken = () => {
     // Trigger adherence refresh when medication is taken
@@ -121,19 +102,6 @@ const Dashboard = () => {
       iconBackground: 'bg-orange-100/50',
       action: () => navigate('/contact-doctor')
     },
-    {
-      title: 'Manage Caregivers',
-      description: 'Add and manage your caregivers',
-      icon: Users,
-      gradientStart: 'indigo-600',
-      gradientEnd: 'indigo-400',
-      titleFontColor: 'text-indigo-900',
-      titleFontColorHover: 'text-indigo-800',
-      descriptionFontColor: 'text-indigo-800/90',
-      descriptionFontColorHover: 'text-indigo-800/80',
-      iconBackground: 'bg-indigo-100/50',
-      action: () => setShowCaregiverDialog(true)
-    }
   ];
 
   return (
@@ -240,29 +208,11 @@ const Dashboard = () => {
                   <span className="text-sm text-gray-600">Reminders</span>
                   <Badge className="bg-green-100 text-green-700">Enabled</Badge>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Caregivers</span>
-                  <Badge className="bg-blue-100 text-blue-700">
-                    {caregiverCount} Connected
-                  </Badge>
-                </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Caregiver Management Dialog */}
-        <Dialog open={showCaregiverDialog} onOpenChange={setShowCaregiverDialog}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Manage Caregivers
-              </DialogTitle>
-            </DialogHeader>
-            <CaregiverManagement />
-          </DialogContent>
-        </Dialog>
       </div>
     </div>
   );

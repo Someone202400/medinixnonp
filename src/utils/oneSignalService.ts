@@ -258,16 +258,14 @@ class OneSignalService {
           badge: '/favicon.ico',
           tag: `medication-${options.medicationName?.replace(/\s+/g, '-').toLowerCase()}`,
           requireInteraction: options.urgency === 'critical',
-          actions: actions.map(action => ({
-            action: action.id,
-            title: action.title
-          })),
           data: {
             type: options.type,
             medicationName: options.medicationName,
             dosage: options.dosage,
             scheduledTime: options.scheduledTime?.toISOString(),
             urgency: options.urgency || 'normal'
+          }
+        });
           },
           vibrate: options.urgency === 'critical' ? [200, 100, 200, 100, 200] : [200, 100, 200]
         });
