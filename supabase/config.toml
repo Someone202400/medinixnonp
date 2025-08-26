@@ -1,1 +1,45 @@
 project_id = "vqpztvmhbdnzzbygijmg"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry_limit = 3600
+
+[db]
+port = 54322
+
+[functions.ai-symptom-analysis]
+verify_jwt = false
+
+[functions.enhanced-notifications]
+verify_jwt = false
+
+[functions.medication-chat]
+verify_jwt = false
+
+[functions.medication-notifications]
+verify_jwt = false
+
+[functions.medication-reminder-notifications]
+verify_jwt = false
+
+[functions.schedule-notifications]
+verify_jwt = false
+
+[functions.send-notifications]
+verify_jwt = false
+
+[functions.send-push-notifications]
+verify_jwt = false
+
+[functions.weekly-adherence-report]
+verify_jwt = false

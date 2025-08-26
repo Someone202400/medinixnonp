@@ -98,65 +98,6 @@ const createMissedMedicationNotification = async (userId: string, medicationLog:
 };
 
 const notifyCaregiversAboutMissedMedication = async (userId: string, medicationLog: any) => {
-  try {
-    // Get caregivers with notifications enabled
-    const { data: caregivers, error: caregiversError } = await supabase
-      .from('caregivers')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('notifications_enabled', true);
-
-    if (caregiversError || !caregivers || caregivers.length === 0) {
-      return;
-    }
-
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    const patientName = profile?.full_name || profile?.email || 'Patient';
-    const medicationName = medicationLog.medications?.name || 'medication';
-    const scheduledTime = new Date(medicationLog.scheduled_time).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-
-    // Create caregiver notifications
-    const notifications = caregivers.map(caregiver => ({
-      user_id: userId,
-      title: 'Missed Medication Alert',
-      message: `${patientName} missed their ${medicationName} (${medicationLog.medications?.dosage}) scheduled for ${scheduledTime}.`,
-      type: 'missed_medication_caregiver',
-      scheduled_for: new Date().toISOString(),
-      channels: JSON.stringify(['email']),
-      caregiver_id: caregiver.id
-    }));
-
-    const { error: notifError } = await supabase
-      .from('notifications')
-      .insert(notifications);
-
-    if (notifError) {
-      console.error('Error creating caregiver missed medication notifications:', notifError);
-    } else {
-      console.log('Created caregiver missed medication notifications:', notifications.length);
-      
-      // Send email notifications
-      try {
-        await supabase.functions.invoke('send-notifications', {
-          body: {
-            notifications,
-            caregivers
-          }
-        });
-      } catch (edgeError) {
-        console.error('Error calling send-notifications edge function:', edgeError);
-      }
-    }
-  } catch (error) {
-    console.error('Error notifying caregivers about missed medication:', error);
-  }
+  // Caregiver system has been removed - this function is now a no-op
+  console.log('Caregiver notifications disabled - system removed');
 };

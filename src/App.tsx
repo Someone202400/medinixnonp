@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import NotificationManager from "./components/NotificationManager";
+import EnhancedNotificationManager from "./components/EnhancedNotificationManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import Index from "./pages/Index";
@@ -24,7 +24,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <NotificationManager>
+      <EnhancedNotificationManager>
         <TooltipProvider>
           <Toaster />
           <Sonner />
@@ -68,7 +68,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
-      </NotificationManager>
+      </EnhancedNotificationManager>
     </AuthProvider>
   </QueryClientProvider>
 );
