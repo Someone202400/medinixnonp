@@ -23,11 +23,11 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <EnhancedNotificationManager>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <AuthProvider>
+        <EnhancedNotificationManager>
           <PWAInstallPrompt />
           <BrowserRouter>
             <Routes>
@@ -67,9 +67,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </EnhancedNotificationManager>
-    </AuthProvider>
+        </EnhancedNotificationManager>
+      </AuthProvider>
+    </TooltipProvider>
   </QueryClientProvider>
 );
 
