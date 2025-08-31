@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import EnhancedNotificationManager from "./components/EnhancedNotificationManager";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -29,42 +29,44 @@ const App = () => (
       <AuthProvider>
         <EnhancedNotificationManager>
           <PWAInstallPrompt />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/symptom-checker" element={
-              <ProtectedRoute>
-                <SymptomCheckerPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/medication-library" element={
-              <ProtectedRoute>
-                <MedicationLibraryPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/add-medication" element={
-              <ProtectedRoute>
-                <AddMedicationPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/contact-doctor" element={
-              <ProtectedRoute>
-                <ContactDoctorPage />
-              </ProtectedRoute>
-            } />
-            <Route path="/settings" element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/dashboard" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/symptom-checker" element={
+                <ProtectedRoute>
+                  <SymptomCheckerPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/medication-library" element={
+                <ProtectedRoute>
+                  <MedicationLibraryPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/add-medication" element={
+                <ProtectedRoute>
+                  <AddMedicationPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/contact-doctor" element={
+                <ProtectedRoute>
+                  <ContactDoctorPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
         </EnhancedNotificationManager>
       </AuthProvider>
     </TooltipProvider>

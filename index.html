@@ -5,18 +5,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="google-site-verification" content="Wk5k0F8jJrPbmr0Guh6L9C7SDmoqXzqNgs0rj3yrleo" />
-    <title>MedCare - Your Complete Medication Companion</title>
-    <meta name="description" content="Advanced medication management platform with smart reminders, symptom checker, and comprehensive health tracking." />
+    <title>Medinix - Free Medication Reminder App | Never Miss Your Medications</title>
+    <meta name="description" content="Free medication reminder app with push notifications. Never miss your medications again. Track adherence, get reminders, and manage your health - completely free nonprofit service." />
+    <meta name="keywords" content="medication reminder, pill reminder, medication tracker, adherence, health app, free medication app, nonprofit health" />
     <meta name="author" content="MedCare Team" />
 
-    <meta property="og:title" content="MedCare - Your Complete Medication Companion" />
-    <meta property="og:description" content="Advanced medication management platform with smart reminders, symptom checker, and comprehensive health tracking." />
+    <meta property="og:title" content="Medinix - Free Medication Reminder App" />
+    <meta property="og:description" content="Never miss your medications with free push notification reminders. Track adherence and manage your health." />
+    <meta property="og:url" content="https://medinixnonp.lovable.app" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@medcare_app" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <meta name="twitter:title" content="Medinix - Free Medication Reminder App" />
+    <meta name="twitter:description" content="Never miss your medications with free push notification reminders." />
     
     <!-- PWA and notification support -->
     <link rel="manifest" href="/manifest.json" />
@@ -28,8 +30,8 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="MedCare" />
-    <meta name="application-name" content="MedCare" />
+    <meta name="apple-mobile-web-app-title" content="Medinix" />
+    <meta name="application-name" content="Medinix" />
     <meta name="msapplication-TileColor" content="#3b82f6" />
     <meta name="msapplication-config" content="none" />
     
@@ -44,8 +46,30 @@
   </head>
 
   <body>
-    <div id="root"><!--app-html--></div>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- Structured Data for Health App -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Medinix",
+      "description": "Free medication reminder app with push notifications",
+      "url": "https://medinixnonp.lovable.app",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "provider": {
+        "@type": "Organization",
+        "name": "Medinix Health Nonprofit"
+      }
+    }
+    </script>
     
     <!-- Initialize notification support -->
     <script>

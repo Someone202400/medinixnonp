@@ -1,6 +1,5 @@
 import React from "react";
-import { createRoot, hydrateRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import "./i18n.ts";
@@ -19,15 +18,5 @@ if ('serviceWorker' in navigator) {
 }
 
 const root = document.getElementById("root")!;
-const app = (
-  <BrowserRouter>
-    <App />
-  </BrowserRouter>
-);
 
-// Use hydration for SSR in production
-if (import.meta.env.PROD) {
-  hydrateRoot(root, app);
-} else {
-  createRoot(root).render(app);
-}
+createRoot(root).render(<App />);
