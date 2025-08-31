@@ -18,7 +18,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 214 100% 50%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -27,8 +27,8 @@ All colors MUST be HSL.
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 262 100% 70%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -38,6 +38,20 @@ All colors MUST be HSL.
     --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
+
+    /* Medical app specific colors */
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222.2 84% 4.9%;
+    --info: 214 100% 50%;
+    --info-foreground: 210 40% 98%;
+    
+    /* Medication specific gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(214 100% 50%), hsl(262 100% 70%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(120 76% 50%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(45 92% 55%));
+    --gradient-health: linear-gradient(135deg, hsl(214 100% 50%), hsl(262 100% 70%));
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;

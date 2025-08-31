@@ -259,11 +259,11 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
   if (loading) {
     return (
-      <Card className="bg-gradient-to-br from-white/90 to-blue-50/70 backdrop-blur-xl border-2 border-blue-200/30 shadow-2xl">
+      <Card className="bg-card/90 backdrop-blur-xl border-2 border-primary/30 shadow-2xl">
         <CardContent className="p-6">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent mx-auto mb-2"></div>
-            <p className="text-gray-600">Calculating adherence...</p>
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent mx-auto mb-2"></div>
+            <p className="text-muted-foreground">Calculating adherence...</p>
           </div>
         </CardContent>
       </Card>
@@ -271,10 +271,10 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-white/90 to-blue-50/70 backdrop-blur-xl border-2 border-blue-200/30 shadow-2xl">
+    <Card className="bg-card/90 backdrop-blur-xl border-2 border-primary/30 shadow-2xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          <TrendingUp className="h-6 w-6 text-blue-600" />
+        <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+          <TrendingUp className="h-6 w-6 text-primary" />
           Medication Adherence
           <Badge className={`ml-2 ${status.textColor} bg-opacity-20`}>
             {status.label}
@@ -285,14 +285,14 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         {/* Overall Adherence */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-lg font-semibold text-gray-700">Overall Adherence</span>
-            <span className="text-2xl font-bold text-blue-600">{adherenceData.adherencePercentage}%</span>
+            <span className="text-lg font-semibold text-foreground">Overall Adherence</span>
+            <span className="text-2xl font-bold text-primary">{adherenceData.adherencePercentage}%</span>
           </div>
           <Progress 
             value={adherenceData.adherencePercentage} 
             className="h-3"
           />
-          <div className="flex justify-between text-sm text-gray-600">
+          <div className="flex justify-between text-sm text-muted-foreground">
             <span>{adherenceData.totalTaken} taken</span>
             <span>{adherenceData.totalMissed} missed</span>
             <span>{adherenceData.totalScheduled} total</span>
@@ -300,16 +300,16 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         </div>
 
         {/* Today's Progress */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-xl border-2 border-green-200">
+        <div className="bg-success/10 p-4 rounded-xl border-2 border-success/20">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-green-600" />
-              <span className="font-semibold text-green-800">Today's Progress</span>
+              <Calendar className="h-5 w-5 text-success" />
+              <span className="font-semibold text-success">Today's Progress</span>
             </div>
-            <span className="text-xl font-bold text-green-600">{todayAdherence}%</span>
+            <span className="text-xl font-bold text-success">{todayAdherence}%</span>
           </div>
           <Progress value={todayAdherence} className="h-2 mb-2" />
-          <div className="flex justify-between text-sm text-green-700">
+          <div className="flex justify-between text-sm text-success/70">
             <span>{adherenceData.todayTaken} taken</span>
             <span>{adherenceData.todayMissed} missed</span>
             <span>{adherenceData.todayScheduled} scheduled</span>
@@ -318,45 +318,45 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200">
+          <div className="bg-primary/10 p-4 rounded-xl border border-primary/20">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">This Week</span>
+              <Calendar className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-primary">This Week</span>
             </div>
-            <div className="text-2xl font-bold text-blue-600">{adherenceData.weeklyAdherence}%</div>
+            <div className="text-2xl font-bold text-primary">{adherenceData.weeklyAdherence}%</div>
           </div>
           
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border border-purple-200">
+          <div className="bg-accent/10 p-4 rounded-xl border border-accent/20">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-purple-600" />
-              <span className="text-sm font-medium text-purple-800">This Month</span>
+              <Calendar className="h-4 w-4 text-accent" />
+              <span className="text-sm font-medium text-accent">This Month</span>
             </div>
-            <div className="text-2xl font-bold text-purple-600">{adherenceData.monthlyAdherence}%</div>
+            <div className="text-2xl font-bold text-accent">{adherenceData.monthlyAdherence}%</div>
           </div>
         </div>
 
         {/* Streak */}
-        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-xl border border-yellow-200">
+        <div className="bg-warning/10 p-4 rounded-xl border border-warning/20">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-yellow-600" />
-              <span className="font-semibold text-yellow-800">Current Streak</span>
+              <CheckCircle className="h-5 w-5 text-warning" />
+              <span className="font-semibold text-warning">Current Streak</span>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-yellow-600">{adherenceData.streak}</div>
-              <div className="text-sm text-yellow-700">days</div>
+              <div className="text-2xl font-bold text-warning">{adherenceData.streak}</div>
+              <div className="text-sm text-warning/70">days</div>
             </div>
           </div>
         </div>
 
         {/* Recommendations */}
         {adherenceData.adherencePercentage < 85 && (
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 p-4 rounded-xl border border-red-200">
+          <div className="bg-destructive/10 p-4 rounded-xl border border-destructive/20">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <span className="font-semibold text-red-800">Recommendations</span>
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <span className="font-semibold text-destructive">Recommendations</span>
             </div>
-            <ul className="text-sm text-red-700 space-y-1">
+            <ul className="text-sm text-destructive/70 space-y-1">
               <li>• Set up medication reminders 15 minutes before each dose</li>
               <li>• Consider using a pill organizer for weekly preparation</li>
               <li>• Talk to your healthcare provider about any challenges</li>
