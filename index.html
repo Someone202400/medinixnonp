@@ -3,71 +3,119 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="Wk5k0F8jJrPbmr0Guh6L9C7SDmoqXzqNgs0rj3yrleo" />
     <title>Medinix - Free Medication Reminder App | Never Miss Your Medications</title>
-    <meta name="description" content="Free medication reminder app with push notifications. Never miss your medications again. Track adherence, get reminders, and manage your health - completely free nonprofit service." />
-    <meta name="keywords" content="medication reminder, pill reminder, medication tracker, adherence, health app, free medication app, nonprofit health" />
-    <meta name="author" content="MedCare Team" />
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Free nonprofit medication reminder app with push notifications. Track adherence, get smart reminders, and manage your health - completely free student-built service.">
+    <meta name="keywords" content="medication reminder app, pill reminder, medication tracking, medication adherence, health app, free medication app, never miss medications, prescription reminders, chronic illness management, senior health app, medication compliance">
+    <meta name="author" content="Medinix - Nonprofit Health Technology">
+    <meta name="robots" content="index, follow">
+    <meta name="medical-disclaimer" content="This app is for reminder purposes only. Always consult healthcare providers for medical advice.">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://medinixnonp.lovable.app/">
+    <meta property="og:title" content="Medinix - Free Medication Reminder App | Never Miss Your Medications">
+    <meta property="og:description" content="Free nonprofit medication reminder app with push notifications. Track adherence, get smart reminders, and manage your health - completely free student-built service.">
+    <meta property="og:image" content="https://medinixnonp.lovable.app/screenshot-desktop.png">
 
-    <meta property="og:title" content="Medinix - Free Medication Reminder App" />
-    <meta property="og:description" content="Never miss your medications with free push notification reminders. Track adherence and manage your health." />
-    <meta property="og:url" content="https://medinixnonp.lovable.app" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Medinix - Free Medication Reminder App" />
-    <meta name="twitter:description" content="Never miss your medications with free push notification reminders." />
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://medinixnonp.lovable.app/">
+    <meta property="twitter:title" content="Free Medication Reminder App - Medinix">
+    <meta property="twitter:description" content="Smart medication reminders with push notifications. Track adherence and manage your health for free. Built by students for better health outcomes.">
+    <meta property="twitter:image" content="https://medinixnonp.lovable.app/screenshot-desktop.png">
     
-    <!-- PWA and notification support -->
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#3b82f6" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#3b82f6" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1e40af" />
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#3b82f6">
     
-    <!-- PWA Meta Tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Medinix" />
-    <meta name="application-name" content="Medinix" />
-    <meta name="msapplication-TileColor" content="#3b82f6" />
-    <meta name="msapplication-config" content="none" />
+    <!-- iOS Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Medinix">
+    <link rel="apple-touch-icon" href="/icon-192x192.png">
     
-    <!-- iOS specific -->
-    <meta name="apple-touch-fullscreen" content="yes" />
-    <link rel="apple-touch-icon" href="/favicon.ico" />
-    <link rel="apple-touch-startup-image" href="/favicon.ico" />
+    <!-- Android Chrome -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Medinix">
     
-    <!-- Android specific -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Microsoft Tiles -->
+    <meta name="msapplication-TileColor" content="#3b82f6">
+    <meta name="msapplication-TileImage" content="/icon-192x192.png">
+    
+    <!-- Notification Support -->
+    <meta name="google-site-verification" content="placeholder">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="/icon-192x192.png" as="image">
+    
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     
-    <!-- Structured Data for Health App -->
+    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Medinix",
-      "description": "Free medication reminder app with push notifications",
-      "url": "https://medinixnonp.lovable.app",
+      "@type": "MobileApplication",
+      "name": "Medinix - Free Medication Reminder App",
+      "description": "Free nonprofit medication reminder app with push notifications to help patients never miss their medications",
       "applicationCategory": "HealthApplication",
-      "operatingSystem": "Web Browser",
+      "operatingSystem": "Web, iOS, Android",
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
       },
-      "provider": {
+      "featureList": [
+        "Medication reminders with push notifications",
+        "Medication adherence tracking", 
+        "AI-powered symptom checker",
+        "Comprehensive medication library",
+        "Doctor communication tools",
+        "Offline medication schedule access"
+      ],
+      "creator": {
         "@type": "Organization",
-        "name": "Medinix Health Nonprofit"
+        "name": "Student Nonprofit Health Technology Initiative"
       }
+    }
+    </script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Medinix",
+      "@id": "https://medinixnonp.lovable.app",
+      "url": "https://medinixnonp.lovable.app",
+      "logo": "https://medinixnonp.lovable.app/icon-512x512.png",
+      "description": "Nonprofit student organization providing free medication reminder technology",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Georgia",
+        "addressRegion": "GA", 
+        "addressCountry": "US"
+      },
+      "areaServed": {
+        "@type": "State",
+        "name": "Georgia"
+      },
+      "knowsAbout": [
+        "Medication Management",
+        "Health Technology", 
+        "Patient Care Technology",
+        "Medication Adherence"
+      ]
     }
     </script>
     

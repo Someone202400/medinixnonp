@@ -1,48 +1,49 @@
 
 {
-  "name": "Medinix - Medication Reminders",
+  "name": "Medinix - Free Medication Reminder App",
   "short_name": "Medinix",
-  "description": "Never miss your medications again - Advanced medication management with smart reminders, offline access, and caregiver notifications",
-  "start_url": "/?source=pwa",
+  "description": "Free medication reminder app with push notifications. Never miss your medications again.",
+  "start_url": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
   "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "theme_color": "#3b82f6", 
   "orientation": "portrait-primary",
   "scope": "/",
-  "lang": "en",
+  "lang": "en-US",
   "dir": "ltr",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "48x48 32x32 16x16",
-      "type": "image/x-icon",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon.ico", 
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
-      "type": "image/x-icon",
-      "purpose": "any"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/favicon.ico",
+      "src": "/icon-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-maskable-512x512.png",
       "sizes": "512x512", 
-      "type": "image/x-icon",
-      "purpose": "any"
-    },
-    {
-      "src": "/favicon.ico",
-      "sizes": "192x192",
-      "type": "image/x-icon", 
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],
-  "categories": ["health", "medical", "lifestyle", "productivity"],
+  "categories": ["health", "medical", "lifestyle"],
   "screenshots": [
     {
-      "src": "/screenshot1.png",
+      "src": "/screenshot-mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x800",
       "type": "image/png", 
-      "sizes": "1280x720",
       "form_factor": "wide"
     }
   ],
@@ -66,25 +67,18 @@
   },
   "shortcuts": [
     {
-      "name": "Today's Medications",
-      "short_name": "Today", 
-      "description": "View today's medication schedule",
-      "url": "/dashboard?view=today",
-      "icons": [{ "src": "/favicon.ico", "sizes": "192x192" }]
-    },
-    {
       "name": "Add Medication",
       "short_name": "Add Med",
-      "description": "Add a new medication to your schedule", 
+      "description": "Quickly add a new medication",
       "url": "/add-medication",
-      "icons": [{ "src": "/favicon.ico", "sizes": "192x192" }]
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
     },
     {
-      "name": "Symptom Checker",
-      "short_name": "Symptoms",
-      "description": "Check your symptoms with AI guidance",
-      "url": "/symptom-checker", 
-      "icons": [{ "src": "/favicon.ico", "sizes": "192x192" }]
+      "name": "Today's Medications", 
+      "short_name": "Today",
+      "description": "View today's medication schedule",
+      "url": "/dashboard",
+      "icons": [{"src": "/icon-192x192.png", "sizes": "192x192"}]
     }
   ]
 }
