@@ -20,6 +20,7 @@ import {
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import MedicationAdherence from '@/components/MedicationAdherence';
+import PushNotificationTest from '@/components/PushNotificationTest';
 import { OneSignalProvider } from '@/components/OneSignalProvider';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
@@ -157,6 +158,9 @@ const Dashboard = () => {
             {/* Right Column - Adherence & Quick Actions */}
             <div className="space-y-8">
               <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} />
+              
+              {/* Push Notification Testing */}
+              <PushNotificationTest />
               
               {/* Quick Actions */}
               <Card className="bg-card/90 backdrop-blur-xl border-2 border-primary/30 shadow-2xl">

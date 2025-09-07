@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { OneSignalProvider } from "./components/OneSignalProvider";
 import EnhancedNotificationManager from "./components/EnhancedNotificationManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
@@ -27,7 +28,8 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
-        <EnhancedNotificationManager>
+        <OneSignalProvider>
+          <EnhancedNotificationManager>
           <PWAInstallPrompt />
           <BrowserRouter>
             <Routes>
@@ -68,6 +70,7 @@ const App = () => (
             </Routes>
           </BrowserRouter>
         </EnhancedNotificationManager>
+        </OneSignalProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
