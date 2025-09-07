@@ -1,3 +1,8 @@
+User-agent: *
+Allow: /
+Sitemap: https://medinixnonp.lovable.app/sitemap.xml
+
+# Allow search engines to index health content
 User-agent: Googlebot
 Allow: /
 
@@ -10,5 +15,6 @@ Allow: /
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
-Allow: /
+# Block sensitive user data from indexing
+Disallow: /api/
+Disallow: /admin/
