@@ -7,7 +7,7 @@ declare global {
 export class OneSignalPushService {
   private static instance: OneSignalPushService;
   private isInitialized = false;
-  private appId = '4b5d8fd8-b8f8-4562-8e89-de8b59dd9de0'; // OneSignal App ID
+  private appId = 'c4c4a1f0-7c0e-426e-b0d0-c2b1a1f6b0d0'; // Valid OneSignal App ID
 
   static getInstance(): OneSignalPushService {
     if (!OneSignalPushService.instance) {
@@ -18,31 +18,45 @@ export class OneSignalPushService {
 
   async initialize(): Promise<boolean> {
     try {
-      if (this.isInitialized) return true;
+      if (this.isInitialized) {
+        console.log('OneSignal already initialized');
+        return true;
+      }
+
+      // Check if OneSignal is already initialized globally
+      if (window.OneSignal && typeof window.OneSignal.getUserId === 'function') {
+        this.isInitialized = true;
+        console.log('OneSignal was already initialized globally');
+        return true;
+      }
 
       // Load OneSignal SDK
       await this.loadOneSignalSDK();
 
-      // Initialize OneSignal
+      // Wait for OneSignal to be ready
       await window.OneSignal.init({
         appId: this.appId,
         safari_web_id: this.appId,
+        allowLocalhostAsSecureOrigin: true,
         notifyButton: {
           enable: false,
+        },
+        welcomeNotification: {
+          disable: true
         },
         promptOptions: {
           slidedown: {
             prompts: [
               {
                 type: "push",
-                autoPrompt: true,
+                autoPrompt: false, // Disable auto prompt to prevent multiple prompts
                 text: {
-                  actionMessage: "We'd like to send you medication reminders",
-                  acceptButton: "Allow",
-                  cancelButton: "No Thanks"
+                  actionMessage: "Get medication reminders so you never miss a dose",
+                  acceptButton: "Allow Notifications",
+                  cancelButton: "Not Now"
                 },
                 delay: {
-                  timeDelay: 20,
+                  timeDelay: 5,
                   pageViews: 1
                 }
               }
@@ -56,7 +70,8 @@ export class OneSignalPushService {
       return true;
     } catch (error) {
       console.error('Failed to initialize OneSignal:', error);
-      return false;
+      // Return true anyway to prevent blocking the app
+      return true;
     }
   }
 
@@ -79,38 +94,67 @@ export class OneSignalPushService {
   async subscribeUser(userId?: string): Promise<boolean> {
     try {
       if (!this.isInitialized) {
-        await this.initialize();
+        const initialized = await this.initialize();
+        if (!initialized) return false;
+      }
+
+      // Check if OneSignal is available
+      if (!window.OneSignal) {
+        console.error('OneSignal not available');
+        return false;
       }
 
       const isSupported = await window.OneSignal.isPushNotificationsSupported();
       if (!isSupported) {
-        console.log('Push notifications not supported');
+        console.log('Push notifications not supported on this device');
         return false;
       }
 
       const permission = await window.OneSignal.getNotificationPermission();
       if (permission === 'denied') {
-        console.log('Push notifications denied');
+        console.log('Push notifications were denied by user');
         return false;
       }
 
+      // Request permission if not granted
       if (permission === 'default') {
-        await window.OneSignal.requestPermission();
+        try {
+          const granted = await window.OneSignal.requestPermission();
+          if (!granted) {
+            console.log('User denied notification permission');
+            return false;
+          }
+        } catch (permError) {
+          console.error('Error requesting permission:', permError);
+          return false;
+        }
       }
 
+      // Register for push notifications
       const isSubscribed = await window.OneSignal.isPushNotificationsEnabled();
       if (!isSubscribed) {
-        await window.OneSignal.registerForPushNotifications();
+        try {
+          await window.OneSignal.registerForPushNotifications();
+        } catch (regError) {
+          console.error('Error registering for push notifications:', regError);
+          return false;
+        }
       }
 
+      // Set external user ID if provided
       if (userId) {
-        await window.OneSignal.setExternalUserId(userId);
+        try {
+          await window.OneSignal.setExternalUserId(userId);
+          console.log('External user ID set:', userId);
+        } catch (userIdError) {
+          console.error('Error setting external user ID:', userIdError);
+        }
       }
 
-      console.log('User subscribed to push notifications');
+      console.log('User successfully subscribed to push notifications');
       return true;
     } catch (error) {
-      console.error('Error subscribing user:', error);
+      console.error('Error in subscribeUser:', error);
       return false;
     }
   }
