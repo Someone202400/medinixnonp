@@ -19,8 +19,8 @@ import {
 } from 'lucide-react';
 import TodaysMedications from '@/components/TodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
-import MedicationAdherence from '@/components/MedicationAdherence';
-import PushNotificationTest from '@/components/PushNotificationTest';
+import SimpleMedicationAdherence from '@/components/SimpleMedicationAdherence';
+import SimplePushNotificationTest from '@/components/SimplePushNotificationTest';
 import { OneSignalProvider } from '@/components/OneSignalProvider';
 import { startNotificationServices, stopNotificationServices } from '@/utils/notificationService';
 import { supabase } from '@/integrations/supabase/client';
@@ -159,11 +159,11 @@ const Dashboard = () => {
 
             {/* Right Column - Adherence & Quick Actions */}
             <div className="space-y-4 md:space-y-8">
-              <MedicationAdherence refreshTrigger={adherenceRefreshTrigger} />
+              <SimpleMedicationAdherence refreshTrigger={adherenceRefreshTrigger} />
               
               {/* Push Notification Testing - Hidden on mobile */}
               <div className="hidden md:block">
-                <PushNotificationTest />
+                <SimplePushNotificationTest />
               </div>
               
               {/* Quick Actions */}

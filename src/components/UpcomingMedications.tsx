@@ -50,10 +50,26 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
 
     try {
       setLoading(true);
-      console.log('Generating schedules for user:', user.id);
-      for (let i = 0; i < 3; i++) {
-        const targetDate = addDays(new Date(), i);
-        await generateDailyMedicationSchedule(user.id, targetDate);
+      console.log('Fetching upcoming medications for user:', user.id);
+      
+      // Try to generate schedules with timeout
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Schedule generation timeout')), 8000)
+        );
+        
+        const schedulePromises = [];
+        for (let i = 0; i < 3; i++) {
+          const targetDate = addDays(new Date(), i);
+          schedulePromises.push(generateDailyMedicationSchedule(user.id, targetDate));
+        }
+        
+        await Promise.race([
+          Promise.all(schedulePromises),
+          timeoutPromise
+        ]);
+      } catch (scheduleError) {
+        console.warn('Schedule generation failed, continuing with existing data:', scheduleError);
       }
 
       const now = new Date();

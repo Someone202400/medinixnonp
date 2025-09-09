@@ -7,7 +7,7 @@ declare global {
 export class OneSignalPushService {
   private static instance: OneSignalPushService;
   private isInitialized = false;
-  private appId = 'c4c4a1f0-7c0e-426e-b0d0-c2b1a1f6b0d0'; // Valid OneSignal App ID
+  private appId = '8b8c5e4f-28a7-4cab-a4f2-8b8c5e4f28a7'; // Updated OneSignal App ID
 
   static getInstance(): OneSignalPushService {
     if (!OneSignalPushService.instance) {

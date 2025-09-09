@@ -50,8 +50,21 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
 
     try {
       setLoading(true);
-      console.log('Generating daily schedule for user:', user.id);
-      await generateDailyMedicationSchedule(user.id, new Date());
+      console.log('Fetching medications for user:', user.id);
+      
+      // Try to generate daily schedule with timeout
+      try {
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Schedule generation timeout')), 5000)
+        );
+        
+        await Promise.race([
+          generateDailyMedicationSchedule(user.id, new Date()),
+          timeoutPromise
+        ]);
+      } catch (scheduleError) {
+        console.warn('Schedule generation failed, continuing with existing data:', scheduleError);
+      }
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);

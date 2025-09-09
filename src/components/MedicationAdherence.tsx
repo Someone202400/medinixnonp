@@ -48,6 +48,35 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
     }
 
     try {
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Adherence calculation timeout')), 10000)
+      );
+      
+      const calculationPromise = performAdherenceCalculation();
+      
+      await Promise.race([calculationPromise, timeoutPromise]);
+    } catch (error) {
+      console.error('Error calculating adherence:', error);
+      // Set safe default values on error
+      setAdherenceData({
+        totalScheduled: 0,
+        totalTaken: 0,
+        totalMissed: 0,
+        adherencePercentage: 0,
+        weeklyAdherence: 0,
+        monthlyAdherence: 0,
+        streak: 0,
+        todayScheduled: 0,
+        todayTaken: 0,
+        todayMissed: 0
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const performAdherenceCalculation = async () => {
       const now = new Date();
       const weekStart = startOfWeek(now);
       const weekEnd = endOfWeek(now);
@@ -181,25 +210,6 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
         todayTaken,
         todayMissed
       });
-
-    } catch (error) {
-      console.error('Error calculating adherence:', error);
-      // Set safe default values on error
-      setAdherenceData({
-        totalScheduled: 0,
-        totalTaken: 0,
-        totalMissed: 0,
-        adherencePercentage: 0,
-        weeklyAdherence: 0,
-        monthlyAdherence: 0,
-        streak: 0,
-        todayScheduled: 0,
-        todayTaken: 0,
-        todayMissed: 0
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   useEffect(() => {

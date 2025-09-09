@@ -3,7 +3,7 @@ import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import EnhancedSymptomChecker from '@/components/EnhancedSymptomChecker';
+import SimpleSymptomChecker from '@/components/SimpleSymptomChecker';
 
 const SymptomCheckerPage: React.FC = () => {
   return (
@@ -19,7 +19,7 @@ const SymptomCheckerPage: React.FC = () => {
         </div>
         
         <div className="flex justify-center">
-          <EnhancedSymptomChecker />
+          <SimpleSymptomChecker />
         </div>
       </div>
     </div>
