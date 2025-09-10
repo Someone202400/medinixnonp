@@ -33,10 +33,10 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
   useEffect(() => {
     if (user) {
       fetchTodaysMedications();
-      const interval = setInterval(fetchTodaysMedications, 2 * 60 * 1000);
+      // Shorter refresh interval for better UX
+      const interval = setInterval(fetchTodaysMedications, 30 * 1000);
       return () => clearInterval(interval);
     } else {
-      setError('User not authenticated');
       setLoading(false);
     }
   }, [user]);
@@ -52,19 +52,10 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
       setLoading(true);
       console.log('Fetching medications for user:', user.id);
       
-      // Try to generate daily schedule with timeout
-      try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Schedule generation timeout')), 5000)
-        );
-        
-        await Promise.race([
-          generateDailyMedicationSchedule(user.id, new Date()),
-          timeoutPromise
-        ]);
-      } catch (scheduleError) {
-        console.warn('Schedule generation failed, continuing with existing data:', scheduleError);
-      }
+      // Ensure daily schedule exists (async, don't block UI)
+      generateDailyMedicationSchedule(user.id, new Date()).catch(error => 
+        console.warn('Schedule generation failed:', error)
+      );
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);

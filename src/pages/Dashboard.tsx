@@ -17,7 +17,7 @@ import {
   BookOpen,
   Plus
 } from 'lucide-react';
-import TodaysMedications from '@/components/TodaysMedications';
+import EnhancedTodaysMedications from '@/components/EnhancedTodaysMedications';
 import UpcomingMedications from '@/components/UpcomingMedications';
 import SimpleMedicationAdherence from '@/components/SimpleMedicationAdherence';
 import SimplePushNotificationTest from '@/components/SimplePushNotificationTest';
@@ -153,7 +153,7 @@ const Dashboard = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
             {/* Left Column - Today's Medications */}
             <div className="lg:col-span-2 space-y-4 md:space-y-8">
-              <TodaysMedications onMedicationTaken={handleMedicationTaken} />
+              <EnhancedTodaysMedications onMedicationTaken={handleMedicationTaken} />
               <UpcomingMedications />
             </div>
 

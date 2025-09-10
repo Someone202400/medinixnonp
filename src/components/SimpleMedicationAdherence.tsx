@@ -45,14 +45,7 @@ const SimpleMedicationAdherence = ({ refreshTrigger }: SimpleMedicationAdherence
     }
 
     try {
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Adherence calculation timeout')), 8000)
-      );
-      
-      const calculationPromise = performAdherenceCalculation();
-      
-      await Promise.race([calculationPromise, timeoutPromise]);
+      await performAdherenceCalculation();
     } catch (error) {
       console.error('Error calculating adherence:', error);
       // Set safe default values on error but show some sample data
