@@ -214,7 +214,39 @@ const MedicationAdherence = ({ refreshTrigger }: MedicationAdherenceProps) => {
 
   useEffect(() => {
     if (user) {
-      calculateAdherence();
+      const calculateWithTimeout = async () => {
+        try {
+          setLoading(true);
+          
+          // Set 8-second timeout for adherence calculation
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Calculation timeout')), 8000)
+          );
+          
+          const calculationPromise = calculateAdherence();
+          
+          await Promise.race([calculationPromise, timeoutPromise]);
+        } catch (error) {
+          console.error('Error calculating adherence:', error);
+          // Set safe default values on error
+          setAdherenceData({
+            totalScheduled: 0,
+            totalTaken: 0,
+            totalMissed: 0,
+            adherencePercentage: 0,
+            weeklyAdherence: 0,
+            monthlyAdherence: 0,
+            streak: 0,
+            todayScheduled: 0,
+            todayTaken: 0,
+            todayMissed: 0
+          });
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      calculateWithTimeout();
     }
   }, [user, refreshTrigger]);
 

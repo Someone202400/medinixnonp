@@ -8,29 +8,29 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-medical-light via-medical-accent/10 to-medical-primary/10">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <PWAInstallPrompt />
       
       {/* Hero Section */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-medical-subtle" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-accent/5 to-background" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
           <div className="text-center">
             <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 animate-fade-in">
               Free Medication Reminder App - Never Miss Your{" "}
-              <span className="bg-gradient-medical bg-clip-text text-transparent animate-pulse">
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent animate-pulse">
                 Medications
               </span>{" "}
               Again
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in animation-delay-200">
+            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto animate-fade-in">
               Free nonprofit medication reminder app with push notifications. Track medication adherence, get smart reminders exactly when needed, and improve your health outcomes with our student-built technology. Perfect for seniors, chronic illness patients, and anyone who wants reliable medication management.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in animation-delay-400">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in">
               <Button 
                 onClick={() => navigate('/register')}
                 size="lg"
-                className="bg-gradient-medical text-white hover:shadow-medical-glow transition-all duration-300 hover:scale-105 px-8 py-3 text-lg"
+                className="bg-gradient-to-r from-primary to-accent text-white hover:shadow-lg transition-all duration-300 hover:scale-105 px-8 py-3 text-lg"
               >
                 Start Free Medication Tracking
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -39,7 +39,7 @@ const Index = () => {
                 onClick={() => navigate('/login')}
                 variant="outline"
                 size="lg"
-                className="border-2 border-medical-primary text-medical-primary hover:bg-medical-light transition-all duration-300 hover:scale-105 px-8 py-3 text-lg"
+                className="border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-300 hover:scale-105 px-8 py-3 text-lg"
               >
                 Sign In to Your Medications
               </Button>
@@ -79,7 +79,7 @@ const Index = () => {
           </p>
         </section>
 
-        <section className="bg-medical-light/50 py-16 animate-fade-in">
+        <section className="bg-muted/50 py-16 animate-fade-in">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-3xl font-bold text-center text-foreground mb-12">
               Why Choose Medinix for Medication Management
@@ -89,9 +89,9 @@ const Index = () => {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <Card className="bg-card shadow-medical hover:shadow-medical-glow transition-all duration-300 hover:scale-105 animate-fade-in">
+              <Card className="bg-card shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in">
                 <CardContent className="p-6 text-center">
-                  <Bell className="h-12 w-12 text-medical-primary mx-auto mb-4" />
+                  <Bell className="h-12 w-12 text-primary mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-3">Medication Reminders That Work</h3>
                   <p className="text-muted-foreground">
                     Push notifications sent exactly when it's time to take your medications. Never miss a dose with our reliable reminder system.
@@ -99,9 +99,9 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-medical hover:shadow-medical-glow transition-all duration-300 hover:scale-105 animate-fade-in animation-delay-200">
+              <Card className="bg-card shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in">
                 <CardContent className="p-6 text-center">
-                  <TrendingUp className="h-12 w-12 text-medical-success mx-auto mb-4" />
+                  <TrendingUp className="h-12 w-12 text-success mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-3">Medication Adherence Tracking</h3>
                   <p className="text-muted-foreground">
                     Track your medication compliance with detailed statistics and visual charts. Improve your health outcomes.
@@ -109,9 +109,9 @@ const Index = () => {
                 </CardContent>
               </Card>
 
-              <Card className="bg-card shadow-medical hover:shadow-medical-glow transition-all duration-300 hover:scale-105 animate-fade-in animation-delay-400">
+              <Card className="bg-card shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 animate-fade-in">
                 <CardContent className="p-6 text-center">
-                  <Heart className="h-12 w-12 text-medical-emergency mx-auto mb-4" />
+                  <Heart className="h-12 w-12 text-destructive mx-auto mb-4" />
                   <h3 className="text-xl font-semibold mb-3">Free Health Management</h3>
                   <p className="text-muted-foreground">
                     Completely free nonprofit service. No subscriptions, no hidden fees. Just reliable medication management.
@@ -127,7 +127,7 @@ const Index = () => {
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Everything You Need for{" "}
-              <span className="bg-gradient-medical bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
                 Medication Management
               </span>
             </h2>
@@ -137,9 +137,9 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-primary to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Bell className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Push Notification Reminders</h3>
@@ -149,9 +149,9 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in animation-delay-200">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-success to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-success to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <TrendingUp className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Medication Adherence Tracking</h3>
@@ -161,9 +161,9 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in animation-delay-400">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-emergency to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-destructive to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Heart className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Free Nonprofit Service</h3>
@@ -173,9 +173,9 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in animation-delay-600">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-warning to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-warning to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Calendar className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Medication Schedule Management</h3>
@@ -185,9 +185,9 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in animation-delay-800">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-info to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-info to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <Smartphone className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Mobile-First Design</h3>
@@ -197,9 +197,9 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="group hover:shadow-medical-glow transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in animation-delay-1000">
+            <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-card/70 backdrop-blur-sm hover:scale-105 animate-fade-in">
               <CardContent className="p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-medical-secondary to-medical-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-medical">
+                <div className="w-16 h-16 bg-gradient-to-br from-secondary to-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg">
                   <CheckCircle className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-4">Medication Library & Symptom Checker</h3>
@@ -222,8 +222,8 @@ const Index = () => {
       </main>
 
       {/* CTA Section */}
-      <section className="bg-gradient-medical py-16 relative overflow-hidden animate-fade-in">
-        <div className="absolute inset-0 bg-medical-pattern opacity-10" />
+      <section className="bg-gradient-to-r from-primary to-accent py-16 relative overflow-hidden animate-fade-in">
+        <div className="absolute inset-0 bg-black/10" />
         <div className="max-w-4xl mx-auto text-center px-4 relative z-10">
           <h2 className="text-3xl font-bold text-white mb-6 animate-pulse">
             Ready to Never Miss Your Medications Again?
@@ -234,7 +234,7 @@ const Index = () => {
           <Button 
             onClick={() => navigate('/register')}
             size="lg"
-            className="bg-white text-medical-primary hover:bg-white/90 hover:shadow-medical-glow transition-all duration-300 hover:scale-105 px-8 py-3 text-lg font-semibold"
+            className="bg-white text-primary hover:bg-white/90 hover:shadow-lg transition-all duration-300 hover:scale-105 px-8 py-3 text-lg font-semibold"
           >
             Start Your Free Account
             <ArrowRight className="ml-2 h-5 w-5" />

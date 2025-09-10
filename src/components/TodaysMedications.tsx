@@ -32,9 +32,30 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
 
   useEffect(() => {
     if (user) {
-      fetchTodaysMedications();
+      const fetchWithTimeout = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // Set 8-second timeout for data fetching
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Loading timeout')), 8000)
+          );
+          
+          const fetchPromise = fetchTodaysMedications();
+          
+          await Promise.race([fetchPromise, timeoutPromise]);
+        } catch (error) {
+          console.error('Error loading today\'s medications:', error);
+          setError('Unable to load medications');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWithTimeout();
       // Shorter refresh interval for better UX
-      const interval = setInterval(fetchTodaysMedications, 30 * 1000);
+      const interval = setInterval(fetchWithTimeout, 30 * 1000);
       return () => clearInterval(interval);
     } else {
       setLoading(false);
@@ -44,17 +65,15 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
   const fetchTodaysMedications = async () => {
     if (!user?.id) {
       setError('User not authenticated');
-      setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
       console.log('Fetching medications for user:', user.id);
       
-      // Ensure daily schedule exists (async, don't block UI)
+      // Don't block UI on schedule generation - run it in background
       generateDailyMedicationSchedule(user.id, new Date()).catch(error => 
-        console.warn('Schedule generation failed:', error)
+        console.warn('Schedule generation failed (non-blocking):', error)
       );
 
       const today = new Date();
@@ -74,20 +93,18 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
         .in('status', ['pending', 'taken'])
         .order('scheduled_time', { ascending: true });
 
-      if (error) throw new Error(`Supabase Error: ${error.message}`);
+      if (error) throw new Error(`Database Error: ${error.message}`);
 
-      console.log('Supabase medication_logs:', JSON.stringify(logs, null, 2));
+      console.log('Retrieved medication logs:', logs?.length || 0);
 
       const medications: TodaysMedication[] = logs?.map(log => {
         const medName = log.medications?.name && typeof log.medications.name === 'string' 
           ? log.medications.name 
-          : 'Unknown';
+          : 'Unknown Medication';
         const dosage = log.medications?.dosage && typeof log.medications.dosage === 'string' 
           ? log.medications.dosage 
           : '';
         
-        console.log(`Processing log ${log.id}:`, { medName, dosage });
-
         return {
           id: log.id,
           medication_id: log.medication_id,
@@ -99,12 +116,11 @@ const TodaysMedications = ({ onMedicationTaken }: TodaysMedicationsProps) => {
       }) || [];
 
       setTodaysMeds(medications);
+      setError(null);
     } catch (error) {
       console.error('Error fetching today\'s medications:', error);
-      setError('Failed to load medications');
+      setError('Failed to load medications. Please try again.');
       setTodaysMeds([]);
-    } finally {
-      setLoading(false);
     }
   };
 

@@ -32,8 +32,29 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
 
   useEffect(() => {
     if (user) {
-      fetchUpcomingMedications();
-      const interval = setInterval(fetchUpcomingMedications, 5 * 60 * 1000);
+      const fetchWithTimeout = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          // Set 8-second timeout for data fetching
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Loading timeout')), 8000)
+          );
+          
+          const fetchPromise = fetchUpcomingMedications();
+          
+          await Promise.race([fetchPromise, timeoutPromise]);
+        } catch (error) {
+          console.error('Error loading upcoming medications:', error);
+          setError('Unable to load upcoming medications');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWithTimeout();
+      const interval = setInterval(fetchWithTimeout, 5 * 60 * 1000);
       return () => clearInterval(interval);
     } else {
       setError('User not authenticated');
@@ -44,32 +65,18 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
   const fetchUpcomingMedications = async () => {
     if (!user?.id) {
       setError('User not authenticated');
-      setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
       console.log('Fetching upcoming medications for user:', user.id);
       
-      // Try to generate schedules with timeout
-      try {
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Schedule generation timeout')), 8000)
+      // Don't block UI on schedule generation - run in background
+      for (let i = 0; i < 3; i++) {
+        const targetDate = addDays(new Date(), i);
+        generateDailyMedicationSchedule(user.id, targetDate).catch(error => 
+          console.warn('Schedule generation failed (non-blocking):', error)
         );
-        
-        const schedulePromises = [];
-        for (let i = 0; i < 3; i++) {
-          const targetDate = addDays(new Date(), i);
-          schedulePromises.push(generateDailyMedicationSchedule(user.id, targetDate));
-        }
-        
-        await Promise.race([
-          Promise.all(schedulePromises),
-          timeoutPromise
-        ]);
-      } catch (scheduleError) {
-        console.warn('Schedule generation failed, continuing with existing data:', scheduleError);
       }
 
       const now = new Date();
@@ -91,19 +98,17 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
         .order('scheduled_time', { ascending: true })
         .limit(15);
 
-      if (error) throw new Error(`Supabase Error: ${error.message}`);
+      if (error) throw new Error(`Database Error: ${error.message}`);
 
-      console.log('Supabase upcoming logs:', JSON.stringify(logs, null, 2));
+      console.log('Retrieved upcoming medication logs:', logs?.length || 0);
 
       const schedules: MedicationSchedule[] = logs?.map(log => {
         const medName = log.medications?.name && typeof log.medications.name === 'string' 
           ? log.medications.name 
-          : 'Unknown';
+          : 'Unknown Medication';
         const dosage = log.medications?.dosage && typeof log.medications.dosage === 'string' 
           ? log.medications.dosage 
           : '';
-        
-        console.log(`Processing log ${log.id}:`, { medName, dosage });
 
         return {
           id: log.id,
@@ -117,12 +122,11 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
       }) || [];
 
       setUpcomingMeds(schedules);
+      setError(null);
     } catch (error) {
       console.error('Error fetching upcoming medications:', error);
-      setError('Failed to load upcoming medications');
+      setError('Failed to load upcoming medications. Please try again.');
       setUpcomingMeds([]);
-    } finally {
-      setLoading(false);
     }
   };
 
