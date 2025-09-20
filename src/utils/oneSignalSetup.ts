@@ -7,7 +7,7 @@ declare global {
 export class OneSignalPushService {
   private static instance: OneSignalPushService;
   private isInitialized = false;
-  private appId = '8b8c5e4f-28a7-4cab-a4f2-8b8c5e4f28a7'; // Updated OneSignal App ID
+  private appId = 'YOUR_ONESIGNAL_APP_ID'; // This should be replaced with actual OneSignal App ID from user
 
   static getInstance(): OneSignalPushService {
     if (!OneSignalPushService.instance) {
@@ -44,25 +44,31 @@ export class OneSignalPushService {
         welcomeNotification: {
           disable: true
         },
+        serviceWorkerPath: '/OneSignalSDKWorker.js',
+        serviceWorkerUpdaterPath: '/OneSignalSDKUpdaterWorker.js',
         promptOptions: {
           slidedown: {
             prompts: [
               {
                 type: "push",
-                autoPrompt: false, // Disable auto prompt to prevent multiple prompts
+                autoPrompt: false,
                 text: {
-                  actionMessage: "Get medication reminders so you never miss a dose",
-                  acceptButton: "Allow Notifications",
-                  cancelButton: "Not Now"
+                  actionMessage: "💊 Get medication reminders so you never miss a dose!",
+                  acceptButton: "Enable Notifications",
+                  cancelButton: "Maybe Later"
                 },
                 delay: {
-                  timeDelay: 5,
+                  timeDelay: 3,
                   pageViews: 1
                 }
               }
             ]
           }
-        }
+        },
+        persistNotification: true,
+        showCreatedAt: true,
+        notificationClickHandlerMatch: 'origin',
+        notificationClickHandlerAction: 'focus'
       });
 
       this.isInitialized = true;
