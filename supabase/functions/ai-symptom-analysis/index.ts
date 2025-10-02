@@ -44,15 +44,43 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('Processing symptoms:', symptoms, 'for user:', userId);
 
-    const symptomContext = `
-Analyze symptoms: "${symptoms}"
-Return only valid JSON (no extra text or markdown):
+    const systemPrompt = `You are an advanced medical AI assistant. Analyze symptoms and provide:
+1. Top 3-5 most likely conditions with probability percentages (as decimals 0-1)
+2. Detailed descriptions explaining WHY each condition matches the symptoms
+3. Specific, actionable next steps
+4. Red flags that require immediate medical attention
+
+Return ONLY valid JSON in this exact format:
 {
-  "conditions": [{"name": "Condition", "probability": 0, "description": "Brief description"}],
-  "nextSteps": ["Step"],
-  "disclaimer": "Not a substitute for medical advice."
-}
-    `;
+  "conditions": [
+    {
+      "name": "Condition Name",
+      "probability": 0.75,
+      "description": "Detailed explanation of why symptoms match this condition, including specific symptom correlations"
+    }
+  ],
+  "nextSteps": [
+    "Specific action 1",
+    "Specific action 2"
+  ],
+  "urgencyLevel": "low|moderate|high|emergency",
+  "redFlags": ["List any concerning symptoms requiring immediate care"],
+  "disclaimer": "This analysis is for informational purposes only and should not replace professional medical advice. Consult a healthcare provider for proper diagnosis and treatment."
+}`;
+
+    const userPrompt = `Analyze these symptoms and provide differential diagnosis:
+
+Symptoms: ${symptoms}
+
+Provide detailed medical analysis with:
+- Most likely conditions based on symptom presentation
+- Probability estimates (higher probability for better symptom matches)
+- Specific reasons for each diagnosis
+- Clear urgency assessment
+- Any red flag symptoms that need immediate attention
+- Practical next steps for the patient
+
+Return only the JSON response.`;
 
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -65,15 +93,15 @@ Return only valid JSON (no extra text or markdown):
         messages: [
           {
             role: 'system',
-            content: 'You are an AI symptom checker. Analyze symptoms and return only valid JSON with conditions (name, probability as a decimal, description), next steps, and a disclaimer. Do not include markdown or extra text.'
+            content: systemPrompt
           },
           {
             role: 'user',
-            content: symptomContext
+            content: userPrompt
           }
         ],
-        temperature: 0.5,
-        max_tokens: 500,
+        temperature: 0.3,
+        max_tokens: 1500,
       }),
     });
 
@@ -122,16 +150,20 @@ Return only valid JSON (no extra text or markdown):
       analysisResult = {
         conditions: [
           {
-            name: "Analysis unavailable",
-            probability: 0,
-            description: "Unable to process symptoms due to an internal error."
+            name: "Medical Evaluation Needed",
+            probability: 0.5,
+            description: "Unable to provide detailed analysis due to technical limitations. Your symptoms require professional medical assessment for accurate diagnosis."
           }
         ],
         nextSteps: [
-          "Consult a healthcare provider for proper evaluation",
-          "Try again later or contact support"
+          "Schedule an appointment with your primary care physician",
+          "If symptoms are severe or worsening, seek immediate medical care",
+          "Keep a detailed symptom diary to share with your healthcare provider",
+          "Note any triggers, patterns, or changes in your symptoms"
         ],
-        disclaimer: "This analysis is for informational purposes only and should not replace professional medical advice."
+        urgencyLevel: "moderate",
+        redFlags: ["Severe or worsening symptoms", "New or unusual symptoms", "Symptoms affecting daily activities"],
+        disclaimer: "This analysis is for informational purposes only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment."
       };
     }
 

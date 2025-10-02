@@ -177,20 +177,21 @@ All colors MUST be HSL.
   background: linear-gradient(135deg, #2563eb, #7c3aed);
 }
 
-/* Mobile-first responsive design */
+/* Mobile-first responsive design and touch optimization */
 @media (max-width: 768px) {
   .container {
     padding-left: 1rem;
     padding-right: 1rem;
   }
   
-  /* Ensure minimum touch targets */
-  button, .button, [role="button"] {
+  /* Ensure minimum touch targets - WCAG AA standard */
+  button, .button, [role="button"], a {
     min-height: 44px;
     min-width: 44px;
+    padding: 0.75rem 1rem;
   }
   
-  /* Responsive text sizing */
+  /* Responsive text sizing for better mobile readability */
   .text-xs { font-size: 0.875rem; }
   .text-sm { font-size: 1rem; }
   .text-base { font-size: 1.125rem; }
@@ -203,17 +204,85 @@ All colors MUST be HSL.
     margin-bottom: 1rem;
   }
   
-  /* Form input sizing */
+  /* Form input sizing - prevents iOS zoom */
   input, select, textarea {
-    font-size: 16px; /* Prevents zoom on iOS */
+    font-size: 16px !important;
     padding: 0.75rem;
+    border-radius: 0.5rem;
+  }
+  
+  /* Improve touch targets for interactive elements */
+  .hover\:scale-105:active {
+    transform: scale(0.98);
   }
 }
 
-/* Safe area handling for modern mobile devices */
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  /* Remove hover effects on touch devices */
+  .hover\:shadow-lg:hover {
+    box-shadow: none;
+  }
+  
+  /* Add active/pressed states for better feedback */
+  button:active, .button:active, [role="button"]:active {
+    transform: scale(0.97);
+    transition: transform 0.1s ease;
+  }
+  
+  /* Improve tap targets */
+  a, button, [role="button"], input[type="checkbox"], input[type="radio"] {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+  }
+  
+  /* Disable double-tap zoom on buttons */
+  button, .button, [role="button"] {
+    touch-action: manipulation;
+  }
+}
+
+/* iOS-specific optimizations */
+@supports (-webkit-touch-callout: none) {
+  /* Prevent callout on long press */
+  * {
+    -webkit-touch-callout: none;
+  }
+  
+  /* Re-enable for text content */
+  p, span, div, article {
+    -webkit-touch-callout: default;
+  }
+  
+  /* Prevent elastic scrolling bounce on body */
+  body {
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Smooth momentum scrolling */
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Safe area handling for modern mobile devices with notches */
 @supports (padding: max(0px)) {
   .pb-safe {
-    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+  }
+  
+  .pt-safe {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .px-safe {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  /* Full viewport height accounting for mobile browsers */
+  .min-h-screen-safe {
+    min-height: calc(100vh - env(safe-area-inset-bottom));
+    min-height: -webkit-fill-available;
   }
 }
 

@@ -5,19 +5,25 @@ export const ensureMedicationDataExists = async (userId: string) => {
   try {
     console.log('Ensuring medication data exists for user:', userId);
     
-    // Generate schedules for today and next 2 days to ensure data exists
+    // Generate schedules for today only to prevent timeout
     const today = new Date();
-    const promises = [];
     
-    for (let i = 0; i < 3; i++) {
-      const targetDate = new Date(today);
-      targetDate.setDate(today.getDate() + i);
-      promises.push(generateDailyMedicationSchedule(userId, targetDate));
+    // Use a timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Schedule generation timeout')), 5000)
+    );
+    
+    try {
+      await Promise.race([
+        generateDailyMedicationSchedule(userId, today),
+        timeoutPromise
+      ]);
+    } catch (error) {
+      console.warn('Schedule generation skipped due to timeout:', error);
+      // Continue anyway - logs might already exist
     }
     
-    await Promise.all(promises);
-    console.log('Medication data generation completed');
-    
+    console.log('Medication data check completed');
     return true;
   } catch (error) {
     console.error('Error ensuring medication data exists:', error);

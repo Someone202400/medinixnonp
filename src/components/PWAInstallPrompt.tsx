@@ -59,42 +59,50 @@ const PWAInstallPrompt = () => {
   }
 
   return (
-    <Card className="fixed bottom-4 left-4 right-4 z-50 bg-gradient-to-r from-blue-600 to-purple-600 text-white border-none shadow-2xl mx-auto max-w-sm">
+    <Card className="fixed bottom-4 left-4 right-4 z-50 bg-gradient-to-r from-primary to-accent text-white border-none shadow-2xl mx-auto max-w-sm md:max-w-md">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-              <Smartphone className="h-5 w-5" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+              <Smartphone className="h-6 w-6" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-sm">Install MedCare</h3>
-              <p className="text-xs text-blue-100">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-base sm:text-lg mb-1">Install Medinix App</h3>
+              <p className="text-xs sm:text-sm text-white/90 leading-tight">
                 {isIOS 
-                  ? "Tap Share → Add to Home Screen" 
-                  : "Add to home screen for quick access"
+                  ? "Tap the Share button below, then 'Add to Home Screen'" 
+                  : "Get quick access and push notifications"
                 }
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            {!isIOS && (
+          <div className="flex gap-2 w-full sm:w-auto">
+            {!isIOS && deferredPrompt && (
               <Button
                 onClick={handleInstallClick}
                 size="sm"
-                variant="secondary"
-                className="bg-white/20 hover:bg-white/30 text-white border-none h-8"
+                className="flex-1 sm:flex-none bg-white text-primary hover:bg-white/90 font-semibold h-10"
               >
-                <Download className="h-3 w-3 mr-1" />
-                Install
+                <Download className="h-4 w-4 mr-2" />
+                Install Now
+              </Button>
+            )}
+            {isIOS && (
+              <Button
+                size="sm"
+                className="flex-1 sm:flex-none bg-white text-primary hover:bg-white/90 font-semibold h-10 pointer-events-none"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Tap Share ↓
               </Button>
             )}
             <Button
               onClick={handleDismiss}
               size="sm"
               variant="ghost"
-              className="text-white hover:bg-white/20 h-8 w-8 p-0"
+              className="text-white hover:bg-white/20 h-10 w-10 p-0 shrink-0"
             >
-              <X className="h-3 w-3" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
