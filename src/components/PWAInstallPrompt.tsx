@@ -19,16 +19,23 @@ const PWAInstallPrompt = () => {
     setIsIOS(iOS);
 
     // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallPrompt(true);
     };
 
+    const handleAppInstalled = () => {
+      setShowInstallPrompt(false);
+      localStorage.setItem('pwa-installed', 'true');
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
 
@@ -52,8 +59,7 @@ const PWAInstallPrompt = () => {
   // Don't show if already dismissed, in standalone mode, or no prompt available
   if (
     isInStandaloneMode || 
-    localStorage.getItem('pwa-install-dismissed') === 'true' ||
-    (!showInstallPrompt && !isIOS)
+    localStorage.getItem('pwa-install-dismissed') === 'true'
   ) {
     return null;
   }
@@ -77,11 +83,13 @@ const PWAInstallPrompt = () => {
             </div>
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            {!isIOS && deferredPrompt && (
+            {!isIOS && (
               <Button
                 onClick={handleInstallClick}
                 size="sm"
-                className="flex-1 sm:flex-none bg-white text-primary hover:bg-white/90 font-semibold h-10"
+                disabled={!deferredPrompt}
+                className="flex-1 sm:flex-none bg-white text-primary hover:bg-white/90 font-semibold h-10 disabled:opacity-60"
+                title={deferredPrompt ? 'Install the app' : 'Use browser menu → Add to Home screen'}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Install Now

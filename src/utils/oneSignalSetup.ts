@@ -7,7 +7,7 @@ declare global {
 export class OneSignalPushService {
   private static instance: OneSignalPushService;
   private isInitialized = false;
-  private appId = 'YOUR_ONESIGNAL_APP_ID'; // This should be replaced with actual OneSignal App ID from user
+  private appId = (localStorage.getItem('onesignal_app_id') || '').trim(); // Set via localStorage to avoid hardcoding
 
   static getInstance(): OneSignalPushService {
     if (!OneSignalPushService.instance) {
@@ -21,6 +21,11 @@ export class OneSignalPushService {
       if (this.isInitialized) {
         console.log('OneSignal already initialized');
         return true;
+      }
+
+      if (!this.appId) {
+        console.warn('OneSignal App ID not set. Skipping OneSignal initialization.');
+        return false;
       }
 
       // Check if OneSignal is already initialized globally

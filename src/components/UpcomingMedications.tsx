@@ -85,12 +85,9 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
 
-      const { data: logs, error } = await supabase
+      const { data: logs, error: logsError } = await supabase
         .from('medication_logs')
-        .select(`
-          *,
-          medications (name, dosage)
-        `)
+        .select('id, medication_id, scheduled_time, status')
         .eq('user_id', user.id)
         .gte('scheduled_time', tomorrow.toISOString())
         .lte('scheduled_time', nextThreeDays.toISOString())
@@ -98,28 +95,33 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
         .order('scheduled_time', { ascending: true })
         .limit(15);
 
-      if (error) throw new Error(`Database Error: ${error.message}`);
+      if (logsError) throw new Error(`Database Error: ${logsError.message}`);
 
       console.log('Retrieved upcoming medication logs:', logs?.length || 0);
 
-      const schedules: MedicationSchedule[] = logs?.map(log => {
-        const medName = log.medications?.name && typeof log.medications.name === 'string' 
-          ? log.medications.name 
-          : 'Unknown Medication';
-        const dosage = log.medications?.dosage && typeof log.medications.dosage === 'string' 
-          ? log.medications.dosage 
-          : '';
+      const medicationIds = Array.from(new Set((logs || []).map((l:any) => l.medication_id)));
+      let medsMap: Record<string, { name: string; dosage: string }> = {};
+      if (medicationIds.length > 0) {
+        const { data: meds, error: medsError } = await supabase
+          .from('medications')
+          .select('id, name, dosage')
+          .in('id', medicationIds);
+        if (medsError) throw medsError;
+        medsMap = (meds || []).reduce((acc, m) => {
+          acc[m.id] = { name: m.name, dosage: m.dosage } as any;
+          return acc;
+        }, {} as Record<string, { name: string; dosage: string }>);
+      }
 
-        return {
-          id: log.id,
-          medication_id: log.medication_id,
-          medication_name: medName,
-          dosage: dosage,
-          scheduled_time: log.scheduled_time,
-          status: log.status as 'pending' | 'taken' | 'missed',
-          next_dose: new Date(log.scheduled_time)
-        };
-      }) || [];
+      const schedules: MedicationSchedule[] = (logs || []).map((log: any) => ({
+        id: log.id,
+        medication_id: log.medication_id,
+        medication_name: medsMap[log.medication_id]?.name || 'Unknown Medication',
+        dosage: medsMap[log.medication_id]?.dosage || '',
+        scheduled_time: log.scheduled_time,
+        status: log.status as 'pending' | 'taken' | 'missed',
+        next_dose: new Date(log.scheduled_time)
+      }));
 
       setUpcomingMeds(schedules);
       setError(null);
@@ -190,9 +192,10 @@ const UpcomingMedications = ({ refreshTrigger }: UpcomingMedicationsProps) => {
     return (
       <Card className="bg-gradient-to-br from-white/90 to-red-50/70 backdrop-blur-xl border-2 border-red-200/30 shadow-2xl">
         <CardContent className="p-6">
-          <div className="text-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+          <div className="text-center space-y-3">
+            <AlertCircle className="h-8 w-8 text-red-500 mx-auto" />
             <p className="text-red-600">{error}</p>
+            <Button variant="outline" onClick={fetchUpcomingMedications}>Retry</Button>
           </div>
         </CardContent>
       </Card>

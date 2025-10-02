@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,6 +29,7 @@ const EnhancedTodaysMedications = ({ onMedicationTaken }: EnhancedTodaysMedicati
   const [todaysMeds, setTodaysMeds] = useState<TodaysMedication[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -43,6 +45,7 @@ const EnhancedTodaysMedications = ({ onMedicationTaken }: EnhancedTodaysMedicati
 
     if (showRefreshLoader) setRefreshing(true);
     else setLoading(true);
+    setError(null);
 
     try {
       const today = new Date();
@@ -53,40 +56,46 @@ const EnhancedTodaysMedications = ({ onMedicationTaken }: EnhancedTodaysMedicati
       // First, ensure we have medications scheduled for today
       await ensureTodayScheduleExists();
 
-      // Fetch today's medication logs
-      const { data: logs, error } = await supabase
+      // Fetch today's medication logs (without joins to avoid FK dependency)
+      const { data: logs, error: logsError } = await supabase
         .from('medication_logs')
-        .select(`
-          id,
-          medication_id,
-          scheduled_time,
-          status,
-          taken_at,
-          medications!inner (
-            name,
-            dosage
-          )
-        `)
+        .select('id, medication_id, scheduled_time, status, taken_at')
         .eq('user_id', user.id)
         .gte('scheduled_time', today.toISOString())
         .lt('scheduled_time', tomorrow.toISOString())
         .order('scheduled_time', { ascending: true });
 
-      if (error) throw error;
+      if (logsError) throw logsError;
 
-      const medications = logs?.map(log => ({
+      const medicationIds = Array.from(new Set((logs || []).map(l => l.medication_id)));
+      let medsMap: Record<string, { name: string; dosage: string }> = {};
+
+      if (medicationIds.length > 0) {
+        const { data: meds, error: medsError } = await supabase
+          .from('medications')
+          .select('id, name, dosage')
+          .in('id', medicationIds);
+        if (medsError) throw medsError;
+        medsMap = (meds || []).reduce((acc, m) => {
+          acc[m.id] = { name: m.name, dosage: m.dosage } as any;
+          return acc;
+        }, {} as Record<string, { name: string; dosage: string }>);
+      }
+
+      const medications = (logs || []).map((log: any) => ({
         id: log.id,
         medication_id: log.medication_id,
-        medication_name: log.medications?.name || 'Unknown Medication',
-        dosage: log.medications?.dosage || '',
+        medication_name: medsMap[log.medication_id]?.name || 'Unknown Medication',
+        dosage: medsMap[log.medication_id]?.dosage || '',
         scheduled_time: log.scheduled_time,
         status: log.status as 'pending' | 'taken' | 'missed',
         taken_at: log.taken_at
-      })) || [];
+      }));
 
       setTodaysMeds(medications);
     } catch (error) {
       console.error('Error loading medications:', error);
+      setError("Couldn't load today's medications. Please try again.");
       toast({
         title: "Loading Error",
         description: "Could not load today's medications. Please try again.",
@@ -257,6 +266,22 @@ const EnhancedTodaysMedications = ({ onMedicationTaken }: EnhancedTodaysMedicati
     );
   }
 
+  if (error) {
+    return (
+      <Card className="bg-card/90 backdrop-blur-xl border-2 border-destructive/30 shadow-2xl">
+        <CardContent className="p-8">
+          <div className="text-center space-y-4">
+            <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+            <p className="text-destructive text-lg">{error}</p>
+            <Button variant="outline" onClick={() => loadTodaysMedications(true)}>
+              Retry
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const pendingMeds = todaysMeds.filter(med => med.status === 'pending');
   const takenMeds = todaysMeds.filter(med => med.status === 'taken');
 
@@ -365,8 +390,11 @@ const EnhancedTodaysMedications = ({ onMedicationTaken }: EnhancedTodaysMedicati
         {todaysMeds.length === 0 && (
           <div className="text-center py-12">
             <Calendar className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-foreground mb-2">No medications today</h3>
-            <p className="text-muted-foreground">Add medications to see your daily schedule here</p>
+            <h3 className="text-xl font-semibold text-foreground mb-2">No medications scheduled today</h3>
+            <p className="text-muted-foreground mb-4">Add medications to see your daily schedule here</p>
+            <Link to="/add-medication">
+              <Button variant="outline">Add Medication</Button>
+            </Link>
           </div>
         )}
       </CardContent>
